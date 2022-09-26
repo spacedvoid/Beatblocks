@@ -1,0 +1,8 @@
+# Configuration file for Beatblocks 1.0-SNAPSHOT
+
+# Allow players to run debug commands with permission beatblocks.debug
+# Most debug commands do nothing useful, since they are for testing how inner methods work.
+debug: false
+
+# Allow players to see stack traces of exceptions when commands fail, etc. Setting this to false will still show the message of the exception.
+show-stacktrace: true
