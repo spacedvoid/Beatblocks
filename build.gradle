@@ -54,6 +54,6 @@ shadowJar {
     dependencies {
         include dependency("dev.jorel:commandapi-shade:8.5.1")
     }
-    relocate("dev.jorel.commandapi", "net.spacevoid.beatblocks.commandapi")
+    relocate("dev.jorel.commandapi", "net.spacedvoid.beatblocks.commandapi")
     destinationDirectory.set(file("server/plugins"))
 }

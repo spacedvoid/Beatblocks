@@ -10,12 +10,7 @@ import java.util.Map;
 
 public class Charts {
 	public static final String chartFolderPath = new File(Beatblocks.getPlugin().getDataFolder().getPath() + "/charts").getPath();
-	/**
-	 * getKey() = Chart name<br>
-	 * getValue().getKey().getKey() = Chart path<br>
-	 * getValue().getKey().getValue() = Sound path<br>
-	 * getValue().getValue() = Chart status
-	 */
+
 	public static final Map<String, Map.Entry<Map.Entry<String, String>, ChartStatus>> CHARTS = new HashMap<>();
 
 	public static String getChartPath(String chartName) {

@@ -2,6 +2,7 @@ package net.spacedvoid.beatblocks.common;
 
 import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandAPIConfig;
+import net.spacedvoid.beatblocks.common.commands.CommandFlag;
 import net.spacedvoid.beatblocks.common.commands.Commands;
 import net.spacedvoid.beatblocks.common.events.PlayerJoinedEvent;
 import org.bukkit.Bukkit;
@@ -32,6 +33,7 @@ public class Beatblocks extends JavaPlugin {
             }
         }
         config();
+        if(Beatblocks.getPlugin().getConfig().getBoolean("debug", false)) CommandFlag.setFlag(CommandFlag.DEBUG, true);
     }
 
     public static JavaPlugin getPlugin() {

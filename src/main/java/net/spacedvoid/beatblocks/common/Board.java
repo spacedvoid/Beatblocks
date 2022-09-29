@@ -15,7 +15,8 @@ import java.util.Map;
 import java.util.Random;
 
 /**
- * The relative position of a board must be at the -X, -Z and the bottom corner at the structure.
+ * The relative position of a board must be at the -X, -Z and the bottom corner of the structure, while rotated north.
+ * This structure-loading class may not work well with some structures.
  */
 public class Board {
 	private Board(String id, String path, int offset_right, int offset_back) {
@@ -26,7 +27,7 @@ public class Board {
 	}
 
 	public final String id, path;
-	public final int offset_right, offset_back; //Based on north
+	public final int offset_right, offset_back;
 
 	public static final Board SINGLEPLAYER = new Board("singleplayer_board", "structures/singleplayer_board.nbt", 5, 13);
 

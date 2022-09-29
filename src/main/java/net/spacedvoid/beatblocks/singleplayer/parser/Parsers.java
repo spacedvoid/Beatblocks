@@ -3,7 +3,7 @@ package net.spacedvoid.beatblocks.singleplayer.parser;
 public class Parsers {
 	private static IParser parser = new DefaultParser();
 
-	public static <T extends IParser> void setParser(IParser parser) {
+	public static void setParser(IParser parser) {
 		Parsers.parser = parser;
 	}
 
