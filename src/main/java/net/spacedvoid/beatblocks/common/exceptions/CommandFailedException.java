@@ -19,39 +19,26 @@ public class CommandFailedException extends RuntimeException {
 
 	@Override
 	public String getMessage() {
-		String ret = "Command Failed: ";
-		if(super.getMessage() != null) ret += super.getMessage();
-		else ret += "Exception thrown";
+		StringBuilder ret = new StringBuilder();
+		if(super.getMessage() != null) ret.append(super.getMessage());
+		else ret.append("Exception thrown");
 		if(Beatblocks.getPlugin().getConfig().getBoolean("show-stacktrace", true)) {
-			if(hasCause()) ret += "\n" + getCauseDetail();
-			if(hasSuppressed()) ret += "\n" + getSuppressedDetail();
+			Throwable currentCause;
+			if(hasCause()) {
+				ret.append("\n").append(Exceptions.getCauseDetail(this.cause));
+				currentCause = this.cause;
+				while(currentCause.getCause() != null) {
+					currentCause = currentCause.getCause();
+					ret.append("\n").append(Exceptions.getCauseDetail(currentCause));
+				}
+			}
 		}
-		return ret;
+		return ret.toString();
 	}
 
 	private Throwable cause = null;
-	private Throwable suppressed = null;
-
-	public String getCauseDetail() {
-		if(hasCause()) return "Caused by: " + Exceptions.getStackTrace(cause);
-		else return "";
-	}
-
-	public String getSuppressedDetail() {
-		if(hasSuppressed()) return "Suppressed: " + Exceptions.getStackTrace(suppressed);
-		else return "";
-	}
-
-	public CommandFailedException addSuppressedException(Throwable exception) {
-		this.suppressed = exception;
-		return this;
-	}
 
 	public boolean hasCause() {
 		return this.cause != null;
-	}
-
-	public boolean hasSuppressed() {
-		return this.suppressed != null;
 	}
 }

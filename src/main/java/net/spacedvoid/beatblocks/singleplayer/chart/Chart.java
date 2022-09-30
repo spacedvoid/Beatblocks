@@ -20,7 +20,14 @@ import java.util.stream.Stream;
             chartB
                 *.cht
                 *.ogg
-    The parent folder of each chart file(chartA, chartB) will be the name of the chart file specified at the keys of ChartDisplayer.CHARTS to make sure that all chart files' name are
+    The parent folder of each chart file(chartA, chartB) will be the name of the chart file specified at the keys of ChartDisplayer.CHARTS to make sure that all chart files' name are all different.
+
+    how keys work:
+        Lane values are 0 to 7. For each key values,
+        2: 3,4
+        4: 2,3,4,5
+        6: 1,2,3,4,5,6
+        8: 0,1,2,3,4,5,6,7
  */
 
 public class Chart {
@@ -50,7 +57,7 @@ public class Chart {
 
     public static ChartKey<?> getKey(String id) {
         Stream<?> stream = keyIDs.entrySet().stream().filter(entry -> id.equals(entry.getValue())).map(Map.Entry::getKey);
-        return stream.findFirst().isPresent()? (ChartKey<?>)stream.findFirst().get() : null;
+        return (ChartKey<?>)stream.findFirst().orElse(null);
     }
 
     private static Map<String, ChartValue<?>> newValues() {
@@ -83,11 +90,15 @@ public class Chart {
         if((getStringValue(song)).isInvalid()) list.add(song.id);
         if((getStringValue(artist)).isInvalid()) list.add(artist.id);
         if((getStringValue(creator)).isInvalid()) list.add(creator.id);
-        if(!(getDouble(difficulty) >= 0.1 && getDouble(difficulty) <= 10) || getValue(difficulty) == null) list.add(difficulty.id);
-        if(getDouble(bpm) <= 0 || getValue(bpm) == null) list.add(bpm.id);
-        try { getTime(time).validate(); } catch (IllegalArgumentException e) { list.add(time.id); }
-        int keys = getInteger(Chart.keys);
-        if(!(keys == 2 || keys == 4 || keys == 6 || keys == 8)) list.add(Chart.keys.id);
+        if(getDouble(difficulty) == null || !(getDouble(difficulty) >= 0.1 && getDouble(difficulty) <= 10)) list.add(difficulty.id);
+        if(getDouble(bpm) == null || getDouble(bpm) <= 0) list.add(bpm.id);
+        if(getTime(time) != null) try { getTime(time).validate(); } catch (IllegalArgumentException e) { list.add(time.id); }
+        else list.add(time.id);
+        if(getInteger(keys) != null) {
+            int keys = getInteger(Chart.keys);
+            if(!(keys == 2 || keys == 4 || keys == 6 || keys == 8)) list.add(Chart.keys.id);
+        }
+        else list.add(keys.id);
         if(list.size() == 0) return "";
         return String.join(",", list);
     }
@@ -182,11 +193,8 @@ public class Chart {
 
         @Override
         public boolean serialize(@NotNull String s) {
-            if(s.matches("^[a-zA-Z0-9]+$")) {
-                this.value = s;
-                return true;
-            }
-            return false;
+            this.value = s;
+            return true;
         }
 
         String getValue() {
@@ -210,7 +218,7 @@ public class Chart {
             if(s.matches("[0-9]{1,2}:[0-9]{2}")) {
                 String[] split = s.split(":");
                 int min = Integer.parseInt(split[0]), sec = Integer.parseInt(split[1]);
-                if(!(min >= 0 && min < 60) || !(sec >= 0 && sec < 60) || (min == 0 && sec == 0))  return false;
+                if(!(min >= 0 && min < 60) || !(sec >= 0 && sec < 60) || (min == 0 && sec == 0)) return false;
                 this.value = Time.parseString(s);
                 return true;
             }

@@ -3,6 +3,8 @@
 
 사용방법 및 튜토리얼은 천천히 업데이트 예정
 
+~~난 왜 처음에 이따구로 만들어서 디버깅을 못하게 했을까~~
+
 -----
 
 ## 명령어
@@ -16,7 +18,7 @@
 - `/beatblocks charts`
   - `..list` - 차트의 목록 불러오기
   - `..query <chart>` - 차트의 정보 불러오기
-  - `..reload` - 차트 목록 다시 불러오기; `..list` 실행 전에 실행 필요
+  - `..reload` - 차트 목록 다시 불러오기
   
 - `/beatblocks board <board>` - `<board>`**:** `singleplayer`, `multiplayer`(현재 미지원) 
   - 게임에 사용될 구조물을 불러옴

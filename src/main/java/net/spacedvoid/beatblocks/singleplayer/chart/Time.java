@@ -5,9 +5,9 @@ public class Time {
 	public final int seconds;
 
 	public Time(int minutes, int seconds) {
-		validate();
 		this.minutes = minutes;
 		this.seconds = seconds;
+		validate();
 	}
 
 	public void validate() {

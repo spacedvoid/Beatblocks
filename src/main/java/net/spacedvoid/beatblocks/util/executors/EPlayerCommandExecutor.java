@@ -23,9 +23,9 @@ public class EPlayerCommandExecutor implements PlayerCommandExecutor {
 			executor.run(sender,args);
 		}
 		catch (CommandFailedException exception) {
-			sender.sendMessage(ChatColor.RED + exception.getMessage());
+			sender.sendMessage(ChatColor.RED + "Command Failed: " + exception.getMessage());
 		} catch (RuntimeException exception) {
-			sender.sendMessage(ChatColor.RED + new CommandFailedException(exception).getMessage());
+			sender.sendMessage(ChatColor.RED + "Command Failed: " + new CommandFailedException(exception).getMessage());
 		}
 	}
 }

@@ -50,17 +50,17 @@ public class ChartDisplayer {
 			for(File file : list) {
 				if(file.isDirectory()) continue;
 				if(file.getName().endsWith(".ogg")) {
-					Bukkit.getLogger().info("Found sound file " + file.getPath());
+					Bukkit.getLogger().info("Found sound file " + file.getAbsolutePath());
 					sound = file;
 				}
 				if(file.getName().endsWith(".cht")) {
-					Bukkit.getLogger().info("Found chart file " + file.getPath());
+					Bukkit.getLogger().info("Found chart file " + file.getAbsolutePath());
 					chart = file;
 				}
 			}
 		    if(sound != null && chart != null) {
 			    Bukkit.getLogger().info("Adding chart " + chart + " and sound " + sound);
-			    Charts.CHARTS.put(chartFolder.getName(), new AbstractMap.SimpleEntry<>(new AbstractMap.SimpleEntry<>(chart.getPath(), sound.getPath()), Charts.ChartStatus.NOT_LOADED));
+			    Charts.CHARTS.put(chartFolder.getName(), new AbstractMap.SimpleEntry<>(new AbstractMap.SimpleEntry<>(chart.getAbsolutePath(), sound.getAbsolutePath()), Charts.ChartStatus.NOT_LOADED));
 		    }
 		    else if(chart == null) {
 			    Bukkit.getLogger().info("No chart in " + chartFolder.getPath() + "; ignoring");

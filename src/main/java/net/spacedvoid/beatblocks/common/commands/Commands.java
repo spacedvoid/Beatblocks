@@ -35,8 +35,8 @@ public class Commands {
 				CommandFlag.setFlag(CommandFlag.SINGLEPLAYER, true);
 				sender.sendMessage("Enabled Beatblocks: Singleplayer");
 			})).register();
-		new CommandTree("beatblocks").withRequirement(sender -> SinglePlayer.isEnabled && CommandFlag.isEnabled(CommandFlag.SINGLEPLAYER))
-			.then(new LiteralArgument("game")
+		new CommandTree("beatblocks")
+			.then(new LiteralArgument("game").withRequirement(sender -> SinglePlayer.isEnabled && CommandFlag.isEnabled(CommandFlag.SINGLEPLAYER))
 				.then(new LiteralArgument("start")
 					.then(new StringArgument("chart")
 						.executesPlayer(playerExecutor((player, args) -> {
@@ -58,8 +58,7 @@ public class Commands {
 						throw CommandAPI.fail("This command is not supported yet :(");
 					}))
 				)*/
-			).register();
-		new CommandTree("beatblocks")
+			)
 			.then(new LiteralArgument("charts")
 				.then(new LiteralArgument("list")
 					.executes(executor((sender, args) -> {
@@ -77,12 +76,13 @@ public class Commands {
 							String chartFileName = (String)args[0];
 							if(Charts.CHARTS.get(chartFileName) != null) {
 								Chart chart;
-								sender.sendMessage(Component.text("Querying data of chart file \"" + chartFileName + ".cht\"...\n"));
-								try {
+								sender.sendMessage(Component.text("Querying data of chart file \"" + chartFileName + ".cht\"..."));
+								chart = Parsers.getParser().readChart(chartFileName);
+								/*try {
 									chart = Parsers.getParser().readChartAsync(chartFileName).get();
 								} catch(InterruptedException | ExecutionException e) {
-									throw new CommandFailedException("An error occurred while reading the chart file.", e);
-								}
+									throw new CommandFailedException("An error occurred while reading the chart file.", e.getCause());
+								}*/
 								sender.sendMessage(ChartDisplayer.getChartInfo(chart));
 							}
 							else {
@@ -101,14 +101,13 @@ public class Commands {
 							try {
 								listChartsTask.get();
 							} catch (InterruptedException | ExecutionException e) {
-								throw new CommandFailedException("An error occurred whilst loading the chart list:", e);
+								throw new CommandFailedException("An error occurred whilst loading the chart list:", e.getCause());
 							}
 							sender.sendMessage(Component.text(ChatColor.GREEN + "Successfully reloaded the list!"));
 						}, 5);
 					}))
 				)
-			).register();
-		new CommandTree("beatblocks")
+			)
 			.then(new LiteralArgument("board")
 				.then(new StringArgument("boardType").replaceSuggestions(ArgumentSuggestions.strings("singleplayer", "multiplayer"))
 					.executesPlayer(playerExecutor((player, args) -> {
@@ -119,9 +118,8 @@ public class Commands {
 						}
 					}))
 				)
-			).register();
-		new CommandTree("beatblocks").withRequirement(sender -> CommandFlag.isEnabled(CommandFlag.DEBUG))
-			.then(new LiteralArgument("parserversion").withRequirement(sender -> SinglePlayer.isEnabled)
+			)
+			.then(new LiteralArgument("parserversion").withRequirement(sender -> SinglePlayer.isEnabled && CommandFlag.isEnabled(CommandFlag.DEBUG))
 				.executes(executor((sender, args) -> sender.sendMessage(Component.text(Parsers.getParser().getVersion()))))
 			).register();
 		//noinspection SpellCheckingInspection,CommentedOutCode

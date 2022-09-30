@@ -5,6 +5,7 @@ import dev.jorel.commandapi.CommandAPIConfig;
 import net.spacedvoid.beatblocks.common.commands.CommandFlag;
 import net.spacedvoid.beatblocks.common.commands.Commands;
 import net.spacedvoid.beatblocks.common.events.PlayerJoinedEvent;
+import net.spacedvoid.beatblocks.common.events.ServerLoadedEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -25,6 +26,7 @@ public class Beatblocks extends JavaPlugin {
     public void onEnable() {
         CommandAPI.onEnable(this);
         Bukkit.getPluginManager().registerEvents(new PlayerJoinedEvent(), this);
+        Bukkit.getPluginManager().registerEvents(new ServerLoadedEvent(), this);
         if(Files.notExists(getDataFolder().toPath())) {
             try {
                 Files.createDirectory(this.getDataFolder().toPath());
