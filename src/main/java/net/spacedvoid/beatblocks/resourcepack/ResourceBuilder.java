@@ -49,13 +49,15 @@ public class ResourceBuilder {
 		File soundsFolder = new File(buildDir.getPath() + "/assets/beatblocks/sounds");
 		File mcmeta = new File(buildDir.getPath() + "/pack.mcmeta");
 		File soundsJson = new File(soundsFolder.getPath() + "/sounds.json");
-		try (FileChannel channel = FileChannel.open(buildDir.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE); FileLock lock = channel.tryLock()) {
-			if(lock == null) throw new ResourceBuildException("Failed to acquire lock because another program is having a lock for " + Charts.chartFolderPath);
+		try (FileChannel buildChannel = FileChannel.open(buildDir.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE); FileLock buildLock = buildChannel.tryLock()) {
+			if(buildLock == null) throw new ResourceBuildException("Failed to acquire lock because another program is having a lock for " + buildDir.getPath());
 			try {
 				Files.createDirectories(soundsFolder.toPath());
 				createFile(mcmeta.toPath());
 				createFile(soundsJson.toPath());
-			} catch (IOException e) { throw new ResourceBuildException("Failed to create files", e); }
+			} catch (IOException e) {
+				throw new ResourceBuildException("Failed to create files", e);
+			}
 			try (Writer writer = new FileWriter(mcmeta)) {
 				Gson gson = new GsonBuilder().create();
 				//noinspection unused,FieldMayBeFinal
@@ -68,28 +70,31 @@ public class ResourceBuilder {
 			} catch (JsonIOException e) {
 				throw new ResourceBuildException("Failed to write mcmeta file", e);
 			}
-			ChartDisplayer.listCharts();
-			HashMap<String, String> sounds = new HashMap<>();
-			Charts.CHARTS.entrySet().stream().filter(entry -> entry.getValue().getValue() == Charts.ChartStatus.LOADED)
-				.forEach(entry -> {
-					File soundFile = new File(entry.getValue().getKey().getValue());
-					if(!soundFile.exists() || !soundFile.isFile()) throw new ResourceBuildException("The sound file " + soundFile.getPath() + " cannot be found or is not a file");
-					//TODO: Write sounds.json, check if each sound is a valid ogg file
-					String key = soundFile.getPath().substring(soundFile.getPath().indexOf(Charts.chartFolderPath) + Charts.chartFolderPath.length())
-						.replace(File.separator, ".");
-					String value = soundFile.getPath().substring(soundFile.getPath().indexOf(Charts.chartFolderPath) + Charts.chartFolderPath.length())
-						.replace(File.separator, "/");
-					sounds.put(key, value);
-					try {
-						Files.copy(soundFile.toPath(), Path.of(soundsFolder.getPath() + "/" + soundFile.getName()), StandardCopyOption.REPLACE_EXISTING);
-					} catch (IOException e) {
-						throw new ResourceBuildException("Failed to copy sound file to build dir", e);
-					}
-				});
-			try (Writer writer = new FileWriter(soundsJson)) {
-				new GsonBuilder().create().toJson(sounds, writer);
-			} catch (JsonIOException e) {
-				throw new ResourceBuildException("Failed to write sounds.json", e);
+			try (FileChannel chartsChannel = FileChannel.open(Path.of(Charts.chartFolderPath), StandardOpenOption.READ); FileLock chartsLock = chartsChannel.tryLock()) {
+				if(chartsLock == null) throw new ResourceBuildException("Failed to acquire lock because another program is having a lock for " + Charts.chartFolderPath);
+				ChartDisplayer.listCharts();
+				HashMap<String, String> sounds = new HashMap<>();
+				Charts.CHARTS.entrySet().stream().filter(entry -> entry.getValue().getValue() == Charts.ChartStatus.LOADED)
+					.forEach(entry -> {
+						File soundFile = new File(entry.getValue().getKey().getValue());
+						if(!soundFile.exists() || !soundFile.isFile()) throw new ResourceBuildException("The sound file " + soundFile.getPath() + " cannot be found or is not a file");
+						//TODO: Write sounds.json, check if each sound is a valid ogg file
+						String key = soundFile.getPath().substring(soundFile.getPath().indexOf(Charts.chartFolderPath) + Charts.chartFolderPath.length())
+							.replace(File.separator, ".");
+						String value = soundFile.getPath().substring(soundFile.getPath().indexOf(Charts.chartFolderPath) + Charts.chartFolderPath.length())
+							.replace(File.separator, "/");
+						sounds.put(key, value);
+						try {
+							Files.copy(soundFile.toPath(), Path.of(soundsFolder.getPath() + "/" + soundFile.getName()), StandardCopyOption.REPLACE_EXISTING);
+						} catch (IOException e) {
+							throw new ResourceBuildException("Failed to copy sound file to build dir", e);
+						}
+					});
+				try (Writer writer = new FileWriter(soundsJson)) {
+					new GsonBuilder().create().toJson(sounds, writer);
+				} catch (JsonIOException e) {
+					throw new ResourceBuildException("Failed to write sounds.json", e);
+				}
 			}
 			new ZipUtils().zip(buildDir.getPath(), Beatblocks.getPlugin().getDataFolder().getPath() + "/beatblocks-resource.zip");
 		} catch (OverlappingFileLockException e) {

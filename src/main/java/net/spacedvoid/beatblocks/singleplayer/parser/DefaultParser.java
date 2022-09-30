@@ -11,6 +11,7 @@ import org.bukkit.Bukkit;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
@@ -42,8 +43,9 @@ public class DefaultParser implements IParser {
         if(!chartFile.exists()) throw new ChartFileException("The chart file could not be found, or is not listed");
         Chart chart = new Chart();
         Charts.ChartStatus status = Charts.ChartStatus.LOADED;
-        try (FileInputStream inputStream = new FileInputStream(chartFile); Scanner chartScanner = new Scanner(inputStream, StandardCharsets.UTF_8)) {
-            int i = 1;
+        try (FileInputStream inputStream = new FileInputStream(chartFile); FileLock lock = inputStream.getChannel().tryLock(); Scanner chartScanner = new Scanner(inputStream, StandardCharsets.UTF_8)) {
+            if(lock == null) throw new RuntimeException("Chart file is locked");
+            int line = 1;
             if(chartScanner.hasNext()) {
                 String input = chartScanner.next();
                 if(input.matches("^" + Chart.format.id + "=\\d.\\d$")) {
@@ -69,42 +71,42 @@ public class DefaultParser implements IParser {
                 Bukkit.getLogger().warning("The chart file " + chartFile.getPath() + " is empty; no content to read");
                 throw new ChartFileException("The chart file is empty; no content to read");
             }
-            i++;
+            line++;
             while(chartScanner.hasNext()) {
                 String input = chartScanner.next();
                 if(input.matches("^[a-z-]+(=)[a-zA-Z0-9.]+$")) {
                     if(!chart.getValue(Chart.getKey(input.split("=")[0])).serialize(input.split("=")[1])) {
                         status = Charts.ChartStatus.NEEDS_REWRITE;
-                        Bukkit.getLogger().warning("Invalid format of chart data at file " + chartFile.getPath() + ", line " + i + "; ignoring");
+                        Bukkit.getLogger().warning("Invalid format of chart data at file " + chartFile.getPath() + ", line " + line + "; ignoring");
                         Bukkit.getLogger().warning(input);
                     }
                 }
                 else if(input.matches("^chart=$")) {
                     while(chartScanner.hasNext()) {
                         input = chartScanner.next();
-                        i++;
+                        line++;
                         if(input.matches("\\d+,[0-5],[01]")) {
                             String[] split = input.split(",");
                             chart.notes.add(Chart.ChartNote.of(Integer.parseInt(split[0]), Integer.parseInt(split[1]), split[2].equals("1")));
                         }
                         else if(input.matches("^[a-z-]+(=)[a-zA-Z0-9.]+$")) {
                             status = Charts.ChartStatus.NEEDS_REWRITE;
-                            Bukkit.getLogger().warning("Unexpected chart data at chart file " + chartFile.getPath() + ", line " + i + "; trailing data will not be saved");
+                            Bukkit.getLogger().warning("Unexpected chart data at chart file " + chartFile.getPath() + ", line " + line + "; trailing data will not be saved");
                             Bukkit.getLogger().warning(input);
                         }
                         else {
                             status = Charts.ChartStatus.NEEDS_REWRITE;
-                            Bukkit.getLogger().warning("Invalid note format at chart file " + chartFile.getPath() + ", line " + i + "; ignoring");
+                            Bukkit.getLogger().warning("Invalid note format at chart file " + chartFile.getPath() + ", line " + line + "; ignoring");
                             Bukkit.getLogger().warning(input);
                         }
                     }
                 }
                 else {
                     status = Charts.ChartStatus.NEEDS_REWRITE;
-                    Bukkit.getLogger().warning("Not a data format at chart file " + chartFile.getPath() + ", line " + i + "; ignoring");
+                    Bukkit.getLogger().warning("Not a data format at chart file " + chartFile.getPath() + ", line " + line + "; ignoring");
                     Bukkit.getLogger().warning(input);
                 }
-                i++;
+                line++;
             }
         } catch (IOException e) {
             throw new BeatblocksException("IOException while reading chart file", e);
