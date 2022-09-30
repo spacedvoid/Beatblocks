@@ -1,7 +1,7 @@
 package net.spacedvoid.beatblocks.singleplayer.chart;
 
 import net.spacedvoid.beatblocks.singleplayer.exceptions.ChartFileException;
-import net.spacedvoid.beatblocks.singleplayer.parser.DefaultParser;
+import net.spacedvoid.beatblocks.singleplayer.parser.Parsers;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 /*
-    Limitations: The structure must be like:
+    Limitations: The folder structure must be like:
     beatblocks
         charts
             chartA
@@ -27,7 +27,7 @@ public class Chart {
     public static final Map<String, ChartValue<?>> values = new HashMap<>();
     public static final Map<ChartKey<?>, String> keyIDs = new HashMap<>();
 
-    public static final ChartKey<DoubleValue> formatVersion = register("format-version", new DoubleValue());
+    public static final ChartKey<StringValue> format = register("format", new StringValue());
     public static final ChartKey<StringValue> soundFile = register("sound-file", new StringValue());
     public static final ChartKey<StringValue> song = register("song", new StringValue());
     public static final ChartKey<StringValue> artist = register("artist", new StringValue());
@@ -73,8 +73,8 @@ public class Chart {
     }
 
     public boolean formatMatchReaderVersion() {
-        if(this.getDouble(formatVersion) == null) return false;
-        else return this.getDouble(formatVersion) == DefaultParser.READER_VERSION;
+        if(this.getString(format) == null) return false;
+        else return this.getString(format).equals(Parsers.getParser().getVersion());
     }
 
     public String validate() {
@@ -128,6 +128,7 @@ public class Chart {
         return (TimeValue)getValue(key);
     }*/
 
+    @SuppressWarnings("unused")
     public static class ChartKey<T> {
         public final String id;
         ChartKey(String id) {
@@ -135,7 +136,9 @@ public class Chart {
         }
     }
 
+    @SuppressWarnings("unused")
     public static abstract class ChartValue<T extends ChartValue<?>> {
+        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         public abstract boolean serialize(@NotNull String s);
     }
 

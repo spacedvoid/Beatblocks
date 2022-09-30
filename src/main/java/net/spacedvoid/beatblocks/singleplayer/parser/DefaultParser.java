@@ -10,12 +10,12 @@ import org.bukkit.Bukkit;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
 /* Structure:
-format-version=(double)
+format=(String)
 sound-file=(String)
 song=(String)
 artist=(String)
@@ -30,7 +30,6 @@ chart=
 */
 
 public class DefaultParser implements IParser {
-    public static final double READER_VERSION = 1.0;
     public static final String PARSER_VERSION = "Default-1.0";
 
     public String getVersion() {
@@ -43,12 +42,12 @@ public class DefaultParser implements IParser {
         if(!chartFile.exists()) throw new ChartFileException("The chart file could not be found, or is not listed");
         Chart chart = new Chart();
         Charts.ChartStatus status = Charts.ChartStatus.LOADED;
-        try (Scanner chartScanner = new Scanner(new FileInputStream(chartFile), StandardCharsets.UTF_8)) {
+        try (FileInputStream inputStream = new FileInputStream(chartFile); Scanner chartScanner = new Scanner(inputStream, StandardCharsets.UTF_8)) {
             int i = 1;
             if(chartScanner.hasNext()) {
                 String input = chartScanner.next();
-                if(input.matches("^format-version=\\d.\\d$")) {
-                    if(!chart.getValue(Chart.formatVersion).serialize(input.split("=")[1])) {
+                if(input.matches("^" + Chart.format.id + "=\\d.\\d$")) {
+                    if(!chart.getValue(Chart.format).serialize(input.split("=")[1])) {
                         Charts.setFileStatus(chartName, Charts.ChartStatus.INVALID_FORMAT);
                         Bukkit.getLogger().warning("Format version of chart file " + chartFile.getPath() + " cannot be serialized");
                         throw new ChartFileException("Format version of the chart file cannot be serialized.");
@@ -107,8 +106,8 @@ public class DefaultParser implements IParser {
                 }
                 i++;
             }
-        } catch (FileNotFoundException e) {
-            throw new BeatblocksException(e);
+        } catch (IOException e) {
+            throw new BeatblocksException("IOException while reading chart file", e);
         }
         if(!chart.validate().equals("")) {
             Charts.setFileStatus(chartName, Charts.ChartStatus.INVALID_FORMAT);
