@@ -145,8 +145,5 @@ public class Commands {
 				throw new RuntimeException("Testing Exception", new RuntimeException("Cause exception"));
 			}))
 			.register();
-		//noinspection SpellCheckingInspection
-		new CommandTree("testgetdr").withRequirement(sender -> CommandFlag.isEnabled(CommandFlag.DEBUG))
-			.executes(executor((sender, args) -> ResourceBuilder.getDefaultResources().forEach(path -> Bukkit.getLogger().info(path)))).register();
 	}
 }

@@ -21,8 +21,9 @@
 - `/beatblocks board <board>` - `<board>`**:** `singleplayer`, `multiplayer`(현재 미지원) 
   - 게임에 사용될 구조물을 불러옴
   
-- `/buildresource` - 게임에 사용될 리소스팩을 빌드
-  - 콘솔창을 통해 실행 가능하나, 현재 테스트가 필요함.
+- `/buildresource [includeUnloaded] [hostPack]` - 게임에 사용될 리소스팩을 빌드 및 적용
+  - `[includeUnloaded]` - 모든 차트 파일을 불러온 후 빌드(기본값 `false`)
+  - `[hostPack]` - 리소스팩을 적용(기본값 `true`, 콘솔창에서는 `false`)
   
  #### 싱글플레이 전용
  - `/beatblocks game start [player]` - 명령어를 실행한 플레이어 또는 `[player]` 플레이어로 싱글플레이 게임 시작
