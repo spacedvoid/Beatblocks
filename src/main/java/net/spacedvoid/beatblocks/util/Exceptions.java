@@ -22,4 +22,8 @@ public class Exceptions {
 	public static String getCauseDetail(@Nullable Throwable thrown) {
 		return thrown == null? "" : "Caused by: " + getStackTrace(thrown);
 	}
+
+	public static String getSuppressedDetail(@Nullable Throwable thrown) {
+		return thrown == null? "" : "Suppressed: " + getStackTrace(thrown);
+	}
 }

@@ -2,10 +2,7 @@ package net.spacedvoid.beatblocks.common.commands;
 
 import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandTree;
-import dev.jorel.commandapi.arguments.ArgumentSuggestions;
-import dev.jorel.commandapi.arguments.LiteralArgument;
-import dev.jorel.commandapi.arguments.PlayerArgument;
-import dev.jorel.commandapi.arguments.StringArgument;
+import dev.jorel.commandapi.arguments.*;
 import net.kyori.adventure.text.Component;
 import net.spacedvoid.beatblocks.common.Beatblocks;
 import net.spacedvoid.beatblocks.common.Board;
@@ -20,11 +17,13 @@ import net.spacedvoid.beatblocks.singleplayer.parser.Parsers;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static net.spacedvoid.beatblocks.util.executors.ECommandExecutor.executor;
+import static net.spacedvoid.beatblocks.util.executors.EConsoleCommandExecutor.consoleExecutor;
 import static net.spacedvoid.beatblocks.util.executors.EPlayerCommandExecutor.playerExecutor;
 
 public class Commands {
@@ -62,7 +61,7 @@ public class Commands {
 			.then(new LiteralArgument("list")
 				.executes(executor((sender, args) -> {
 					try {
-						ChartDisplayer.listChartsAsync().get();
+						Charts.listChartsAsync().get();
 					} catch (InterruptedException | ExecutionException e) {
 						throw new CommandFailedException("An error occurred while listing charts.", e);
 					}
@@ -74,15 +73,23 @@ public class Commands {
 					.executes(executor((sender, args) -> {
 						String chartFileName = (String)args[0];
 						if(Charts.CHARTS.get(chartFileName) != null) {
-							Chart chart;
 							sender.sendMessage(Component.text("Querying data of chart file \"" + chartFileName + ".cht\"..."));
-							chart = Parsers.getParser().readChart(chartFileName);
-							/*try {
-								chart = Parsers.getParser().readChartAsync(chartFileName).get();
-							} catch(InterruptedException | ExecutionException e) {
-								throw new CommandFailedException("An error occurred while reading the chart file.", e.getCause());
-							}*/
-							sender.sendMessage(ChartDisplayer.getChartInfo(chart));
+							CompletableFuture<Chart> future = Parsers.getParser().readChartAsync(chartFileName);
+							new BukkitRunnable() {
+								@Override
+								public void run() {
+									if(future.isDone()) {
+										this.cancel();
+										try {
+											sender.sendMessage(ChartDisplayer.getChartInfo(future.get()));
+										} catch (InterruptedException e) {
+											throw new CommandFailedException(e);
+										} catch (ExecutionException e) {
+											throw new CommandFailedException("An error occurred while reading the chart file.", e.getCause());
+										}
+									}
+								}
+							}.runTaskTimer(Beatblocks.getPlugin(), 0, 1);
 						} else throw new CommandFailedException("No such chart file! Check typos, or try reloading the list.");
 					}))
 				)
@@ -91,7 +98,7 @@ public class Commands {
 				.executes(executor((sender, args) -> {
 					sender.sendMessage(Component.text("Reloading chart files."));
 					Charts.clearChartList();
-					CompletableFuture<Void> listChartsTask = ChartDisplayer.listChartsAsync();
+					CompletableFuture<Void> listChartsTask = Charts.listChartsAsync();
 					Bukkit.getScheduler().runTaskLater(Beatblocks.getPlugin(), () -> {
 						if(!listChartsTask.isDone()) sender.sendMessage(Component.text("Blocking server thread for result. This might cause lag..."));
 						try {
@@ -113,16 +120,32 @@ public class Commands {
 		new CommandTree("parserversion").withRequirement(sender -> SinglePlayer.isEnabled && CommandFlag.isEnabled(CommandFlag.DEBUG))
 			.executes(executor((sender, args) -> sender.sendMessage(Component.text(Parsers.getParser().getVersion())))).register();
 		// noinspection SpellCheckingInspection
-		new CommandTree("buildresource").withRequirement(sender -> sender instanceof ConsoleCommandSender || sender.getName().equals("CompiledNode")).executes(executor((sender, args) -> {
-			sender.sendMessage("Building the resource pack...");
-			ResourceBuilder.buildAsync(sender);
-		})).register();
+		new CommandTree("buildresource").withRequirement(sender -> sender instanceof ConsoleCommandSender || sender.getName().equals("CompiledNode"))
+			.executesConsole(consoleExecutor((sender, args) -> {
+				sender.sendMessage("Building the resource pack with loaded charts...");
+				ResourceBuilder.buildAsync(sender, false, false);
+			}))
+			.executes(executor((sender, args) -> {
+				sender.sendMessage("Building the resource pack with loaded charts...");
+				ResourceBuilder.buildAsync(sender, false, true);
+			}))
+			.then(new BooleanArgument("includedUnloaded")
+				.executesConsole(consoleExecutor((sender, args) -> {
+					sender.sendMessage("Building the resource pack...");
+					ResourceBuilder.buildAsync(sender, (boolean)args[0], false);
+				}))
+				.executes(executor((sender, args) -> {
+					sender.sendMessage("Building the resource pack...");
+					ResourceBuilder.buildAsync(sender, (boolean)args[0], true);
+				}))
+			).register();
 		//noinspection SpellCheckingInspection
 		new CommandTree("testexception").withRequirement(sender -> CommandFlag.isEnabled(CommandFlag.DEBUG))
 			.executes(executor((sender, args) -> {
 				throw new RuntimeException("Testing Exception", new RuntimeException("Cause exception"));
 			}))
 			.register();
+		//noinspection SpellCheckingInspection
 		new CommandTree("testgetdr").withRequirement(sender -> CommandFlag.isEnabled(CommandFlag.DEBUG))
 			.executes(executor((sender, args) -> ResourceBuilder.getDefaultResources().forEach(path -> Bukkit.getLogger().info(path)))).register();
 	}

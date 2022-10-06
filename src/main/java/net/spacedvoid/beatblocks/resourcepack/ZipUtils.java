@@ -22,10 +22,11 @@ public class ZipUtils {
 	 * Creates a zip file from a folder.
 	 * @param sourceDir The source folder path
 	 * @param output The path of the result zip file.
+	 * @return The path of the zip file.
 	 * @throws IllegalArgumentException If the specified path(s) are invalid
 	 * @throws RuntimeException If the deletion of the original file fails, or creating files have failed
 	 */
-	public void zip(String sourceDir, String output) {
+	public Path zip(String sourceDir, String output) {
 		File sourceFolder = new File(sourceDir);
 		File outputFile = new File(output);
 		if(!Files.isDirectory(sourceFolder.toPath()) || !Files.isReadable(sourceFolder.toPath())) throw new IllegalArgumentException("The source directory cannot be found or read");
@@ -69,6 +70,7 @@ public class ZipUtils {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		return outputFile.toPath();
 	}
 
 	private List<String> generateFileList(Path node, String sourceDir) {

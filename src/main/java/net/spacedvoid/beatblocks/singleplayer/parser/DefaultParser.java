@@ -1,15 +1,14 @@
 package net.spacedvoid.beatblocks.singleplayer.parser;
 
 import net.spacedvoid.beatblocks.common.charts.Charts;
-import net.spacedvoid.beatblocks.common.exceptions.BeatblocksException;
 import net.spacedvoid.beatblocks.common.exceptions.CommandFailedException;
-import net.spacedvoid.beatblocks.resourcepack.ResourceBuilder;
 import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
 import net.spacedvoid.beatblocks.singleplayer.exceptions.ChartFileException;
 import org.bukkit.Bukkit;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
@@ -40,7 +39,6 @@ public class DefaultParser implements IParser {
     }
 
     public Chart readChart(String chartName) throws CommandFailedException {
-        ResourceBuilder.checkChartFolderLock();
         File chartFile = new File(Charts.getChartPath(chartName));
         if(!chartFile.exists()) throw new ChartFileException("The chart file could not be found, or is not listed");
         Chart chart = new Chart();
@@ -55,29 +53,24 @@ public class DefaultParser implements IParser {
                 if(input.matches("^" + Chart.format.id + "=(Default|YAML)-\\d.\\d")) {
                     if(!chart.getValue(Chart.format).serialize(input.split("=")[1])) {
                         Charts.setFileStatus(chartName, Charts.ChartStatus.INVALID_FORMAT);
-                        Bukkit.getLogger().warning("Format version of chart file " + chartFile.getPath() + " cannot be serialized");
                         throw new ChartFileException("Format version of the chart file cannot be serialized.");
                     }
                     if(!chart.formatMatchReaderVersion()) {
                         Charts.setFileStatus(chartName, Charts.ChartStatus.VERSION_MISMATCH);
-                        Bukkit.getLogger().warning("Format version of chart file " + chartFile.getPath() + " does not match the reader version of Beatblocks");
                         throw new ChartFileException("Format version of the chart file does not match the reader version of Beatblocks.");
                     }
                 }
                 else if(!input.matches("^" + Chart.format.id)) {
                     Charts.setFileStatus(chartName, Charts.ChartStatus.INVALID_FORMAT);
-                    Bukkit.getLogger().warning("Format key of file " + chartFile.getPath() + " is not appropriate");
                     throw new ChartFileException("Format key is not appropriate.");
                 }
                 else {
                     Charts.setFileStatus(chartName, Charts.ChartStatus.INVALID_FORMAT);
-                    Bukkit.getLogger().warning("Format version of file " + chartFile.getPath() + " is not specified correctly");
                     throw new ChartFileException("Format version is not specified correctly.");
                 }
             }
             else {
                 Charts.setFileStatus(chartName, Charts.ChartStatus.INVALID_FORMAT);
-                Bukkit.getLogger().warning("The chart file " + chartFile.getPath() + " is empty; no content to read");
                 throw new ChartFileException("The chart file is empty; no content to read");
             }
             line++;
@@ -118,7 +111,7 @@ public class DefaultParser implements IParser {
                 line++;
             }
         } catch (IOException e) {
-            throw new BeatblocksException("IOException while reading chart file", e);
+            throw new UncheckedIOException(e);
         }
         if(!chart.validate().equals("")) {
             Charts.setFileStatus(chartName, Charts.ChartStatus.INVALID_FORMAT);
