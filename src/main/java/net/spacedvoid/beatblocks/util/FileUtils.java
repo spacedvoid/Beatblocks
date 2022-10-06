@@ -1,4 +1,4 @@
-package net.spacedvoid.beatblocks.resourcepack;
+package net.spacedvoid.beatblocks.util;
 
 import java.io.IOException;
 import java.nio.file.Files;

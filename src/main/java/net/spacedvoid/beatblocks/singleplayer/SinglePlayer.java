@@ -1,7 +1,7 @@
 package net.spacedvoid.beatblocks.singleplayer;
 
 import net.spacedvoid.beatblocks.common.Beatblocks;
-import net.spacedvoid.beatblocks.common.charts.ChartDisplayer;
+import net.spacedvoid.beatblocks.common.charts.Charts;
 import net.spacedvoid.beatblocks.common.events.PressedNoteEvent;
 import org.bukkit.Bukkit;
 
@@ -22,7 +22,7 @@ public class SinglePlayer {
 
 	public void enable() {
 		Bukkit.getServer().getPluginManager().registerEvents(new PressedNoteEvent(), Beatblocks.getPlugin());
-		CompletableFuture<Void> listChartsTask = ChartDisplayer.listChartsAsync();
+		CompletableFuture<Void> listChartsTask = Charts.listChartsAsync();
 		Bukkit.getScheduler().runTaskLater(Beatblocks.getPlugin(), () -> {
 			try {
 				listChartsTask.get();
