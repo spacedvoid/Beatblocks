@@ -1,6 +1,7 @@
 package net.spacedvoid.beatblocks.singleplayer.parser;
 
 import net.spacedvoid.beatblocks.common.charts.Charts;
+import net.spacedvoid.beatblocks.common.exceptions.BeatblocksException;
 import net.spacedvoid.beatblocks.common.exceptions.CommandFailedException;
 import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
 import net.spacedvoid.beatblocks.singleplayer.exceptions.ChartFileException;
@@ -15,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Scanner;
+import java.util.concurrent.CompletableFuture;
 
 /* Structure:
 format=(String)
@@ -31,11 +33,12 @@ chart=
 #,#,#   //tick,lane,hasDoubleAccuracy
 */
 
-public class DefaultParser implements IParser {
-    public static final String PARSER_VERSION = "Default-1.0";
+public class DefaultParser {
+    public static final String PARSER_FORMAT = "Default-1.0";
+    public static final double PARSER_VERSION = 1.0;
 
-    public String getVersion() {
-        return PARSER_VERSION;
+    public CompletableFuture<Chart> readChartAsync(String chartFileName) {
+        return CompletableFuture.supplyAsync(() -> readChart(chartFileName)).exceptionally(thrown -> {throw new BeatblocksException("Reading chart failed", thrown);});
     }
 
     public Chart readChart(String chartName) throws CommandFailedException {
@@ -76,7 +79,8 @@ public class DefaultParser implements IParser {
             line++;
             while(chartScanner.hasNextLine()) {
                 String input = chartScanner.next();
-                if(input.matches("^[a-z-]+(=)[a-zA-Z0-9.:]+$")) {
+                if(input.matches("^[a-z-]+(=)[a-zA-Z0-9.: ]+$")) {
+                    input = input.strip();
                     if(!chart.getValue(Chart.getKey(input.split("=")[0])).serialize(input.split("=")[1])) {
                         status = Charts.ChartStatus.NEEDS_REWRITE;
                         Bukkit.getLogger().warning("Invalid format of chart data at file " + chartFile.getPath() + ", line " + line + "; ignoring");

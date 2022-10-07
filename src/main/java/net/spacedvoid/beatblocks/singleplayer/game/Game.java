@@ -11,7 +11,7 @@ import net.spacedvoid.beatblocks.common.Board;
 import net.spacedvoid.beatblocks.common.charts.Charts;
 import net.spacedvoid.beatblocks.common.exceptions.BeatblocksException;
 import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
-import net.spacedvoid.beatblocks.singleplayer.parser.Parsers;
+import net.spacedvoid.beatblocks.singleplayer.parser.DefaultParser;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -34,7 +34,7 @@ public class Game {
         if(!boards.containsKey(player)) throw new BeatblocksException("No singleplayer board for " + player.getName() + ".");
         if(Charts.CHARTS.get(chartFileName) == null)
             throw new BeatblocksException("No such chart! Check typos or try reloading the list.");
-        activeGames.put(player, new GameInstance(player, Parsers.getParser().readChartAsync(chartFileName)));
+        activeGames.put(player, new GameInstance(player, new DefaultParser().readChartAsync(chartFileName)));
     }
 
     private static void finish(GameInstance instance) {
@@ -118,10 +118,10 @@ public class Game {
 
         private Material getMaterial(int lane) {
             switch(lane) {
-                case 0, 7 -> { return Material.RED_CONCRETE; }
-                case 1, 6 -> { return Material.YELLOW_CONCRETE; }
-                case 2, 5 -> { return Material.LIME_CONCRETE; }
-                case 3, 4 -> { return Material.LIGHT_BLUE_CONCRETE; }
+                case 0, 8 -> { return Material.RED_CONCRETE; }
+                case 1, 7 -> { return Material.YELLOW_CONCRETE; }
+                case 2, 6 -> { return Material.LIME_CONCRETE; }
+                case 3, 5 -> { return Material.LIGHT_BLUE_CONCRETE; }
                 default -> throw new IllegalArgumentException("No material for note lane " + lane);
             }
         }

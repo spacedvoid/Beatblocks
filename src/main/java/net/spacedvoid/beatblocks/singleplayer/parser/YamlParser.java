@@ -1,17 +1,18 @@
 package net.spacedvoid.beatblocks.singleplayer.parser;
 
+import net.spacedvoid.beatblocks.common.exceptions.BeatblocksException;
 import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
 
-public class YamlParser implements IParser {
-	public static final double READER_VERSION = 1.0;
-	public static final String PARSER_VERSION = "YAML-1.0";
+import java.util.concurrent.CompletableFuture;
 
-	@Override
-	public String getVersion() {
-		return PARSER_VERSION;
+public class YamlParser {
+	public static final double PARSER_VERSION = 1.0;
+	public static final String PARSER_FORMAT = "YAML-1.0";
+
+	public CompletableFuture<Chart> readChartAsync(String chartFileName) {
+		return CompletableFuture.supplyAsync(() -> readChart(chartFileName)).exceptionally(thrown -> {throw new BeatblocksException("Reading chart failed", thrown);});
 	}
 
-	@Override
 	public Chart readChart(String chartName) {
 		throw new UnsupportedOperationException("YAML Parser not available yet");
 	}

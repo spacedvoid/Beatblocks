@@ -3,8 +3,9 @@ package net.spacedvoid.beatblocks.common.charts;
 import net.spacedvoid.beatblocks.common.Beatblocks;
 import net.spacedvoid.beatblocks.common.exceptions.BeatblocksException;
 import net.spacedvoid.beatblocks.common.exceptions.CommandFailedException;
+import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
 import net.spacedvoid.beatblocks.singleplayer.exceptions.ChartFileException;
-import net.spacedvoid.beatblocks.singleplayer.parser.Parsers;
+import net.spacedvoid.beatblocks.singleplayer.parser.DefaultParser;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 
@@ -16,6 +17,7 @@ import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 public class Charts {
 	public static final Path chartFolderPath = Path.of(Beatblocks.getPlugin().getDataFolder().getAbsolutePath() + "/charts");
@@ -48,18 +50,23 @@ public class Charts {
 	}
 
 	/**
-	 * Loads all charts except those that could not be loaded. This method blocks.
+	 * Loads all charts except those that could not be loaded. This method blocks using {@link Charts#listCharts()}
 	 */
 	public static void loadAll() {
 		Bukkit.getLogger().info("Loading all charts");
 		listCharts();
+		DefaultParser parser = new DefaultParser();
 		for(String key : CHARTS.keySet()) {
+			CompletableFuture<Chart> future = parser.readChartAsync(key);
 			try {
-				Parsers.getParser().readChart(key);
-			} catch (ChartFileException e) {
-				Bukkit.getLogger().warning("Error from chart " + key + ": " + e.getMessage());
-			} catch (RuntimeException e) {
-				Bukkit.getLogger().warning("Exception while loading all charts:\n" + new CommandFailedException(e).getMessage());
+				future.get();
+			} catch (ExecutionException e) {
+				if(e.getCause() instanceof ChartFileException) {
+					Bukkit.getLogger().warning("Failed to read chart " + key + ": " + e.getCause().getMessage());
+				}
+				else Bukkit.getLogger().warning("Failed to read chart " + key + ": " + new CommandFailedException(e).getMessage());
+			} catch (InterruptedException e) {
+				throw new RuntimeException(e);
 			}
 		}
 	}
@@ -67,6 +74,8 @@ public class Charts {
 	public static void clearChartList() {
 		CHARTS.clear();
 	}
+
+	public static final String BIC_EXTENTION = ".bic";
 
 	public static CompletableFuture<Void> listChartsAsync() {
 		return CompletableFuture.runAsync(Charts::listCharts);
@@ -102,7 +111,7 @@ public class Charts {
 					Bukkit.getLogger().info("Found sound file " + file.getAbsolutePath());
 					sound = file;
 				}
-				if(file.getName().endsWith(".cht")) {
+				if(file.getName().endsWith(BIC_EXTENTION)) {
 					Bukkit.getLogger().info("Found chart file " + file.getAbsolutePath());
 					chart = file;
 				}

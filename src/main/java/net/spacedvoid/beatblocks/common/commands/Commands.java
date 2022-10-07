@@ -13,7 +13,7 @@ import net.spacedvoid.beatblocks.resourcepack.ResourceBuilder;
 import net.spacedvoid.beatblocks.singleplayer.SinglePlayer;
 import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
 import net.spacedvoid.beatblocks.singleplayer.game.Game;
-import net.spacedvoid.beatblocks.singleplayer.parser.Parsers;
+import net.spacedvoid.beatblocks.singleplayer.parser.DefaultParser;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.ConsoleCommandSender;
@@ -74,7 +74,7 @@ public class Commands {
 						String chartFileName = (String)args[0];
 						if(Charts.CHARTS.get(chartFileName) != null) {
 							sender.sendMessage(Component.text("Querying data of chart file \"" + chartFileName + ".cht\"..."));
-							CompletableFuture<Chart> future = Parsers.getParser().readChartAsync(chartFileName);
+							CompletableFuture<Chart> future = new DefaultParser().readChartAsync(chartFileName);
 							new BukkitRunnable() {
 								@Override
 								public void run() {
@@ -118,7 +118,7 @@ public class Commands {
 			}
 		}))).register();
 		new CommandTree("parserversion").withRequirement(sender -> SinglePlayer.isEnabled && CommandFlag.isEnabled(CommandFlag.DEBUG))
-			.executes(executor((sender, args) -> sender.sendMessage(Component.text(Parsers.getParser().getVersion())))).register();
+			.executes(executor((sender, args) -> sender.sendMessage(Component.text(DefaultParser.PARSER_FORMAT)))).register();
 		// noinspection SpellCheckingInspection
 		new CommandTree("buildresource").withRequirement(sender -> sender instanceof ConsoleCommandSender || sender.getName().equals("CompiledNode"))
 			.executesConsole(consoleExecutor((sender, args) -> {

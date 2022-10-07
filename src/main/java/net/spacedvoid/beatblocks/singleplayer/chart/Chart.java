@@ -1,7 +1,7 @@
 package net.spacedvoid.beatblocks.singleplayer.chart;
 
 import net.spacedvoid.beatblocks.singleplayer.exceptions.ChartFileException;
-import net.spacedvoid.beatblocks.singleplayer.parser.Parsers;
+import net.spacedvoid.beatblocks.singleplayer.parser.DefaultParser;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -81,7 +81,7 @@ public class Chart {
 
     public boolean formatMatchReaderVersion() {
         if(this.getString(format) == null) return false;
-        else return this.getString(format).equals(Parsers.getParser().getVersion());
+        else return this.getString(format).equals(DefaultParser.PARSER_FORMAT);
     }
 
     public String validate() {
