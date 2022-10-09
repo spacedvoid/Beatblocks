@@ -1,6 +1,5 @@
 package net.spacedvoid.beatblocks.common;
 
-import net.spacedvoid.beatblocks.common.exceptions.BeatblocksException;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -10,6 +9,7 @@ import org.bukkit.block.structure.StructureRotation;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Random;
@@ -61,7 +61,7 @@ public class Board {
 			targetStructure.place(location, false, rotation, Mirror.NONE, 0, 1, new Random());
 		}
 		catch (IOException exception) {
-			throw new BeatblocksException(exception);
+			throw new UncheckedIOException("Failed to load board", exception);
 		}
 		return new AbstractMap.SimpleEntry<>(location, face);
 	}

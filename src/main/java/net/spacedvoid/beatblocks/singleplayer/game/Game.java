@@ -64,9 +64,10 @@ public class Game {
             try {
                 this.chart = chart.get();
                 Bukkit.getLogger().info("Force loading chart. The \"server is too slow\" messages can be ignored.");
-            }
-            catch (ExecutionException | InterruptedException e) {
-                throw new BeatblocksException("There was an error while reading the chart file:", e.getCause());
+            } catch (ExecutionException e) {
+                throw new BeatblocksException("Failed to load chart file", e.getCause());
+            } catch (InterruptedException e) {
+                throw new RuntimeException("There was an error while reading the chart file", e.getCause());
             }
             //TODO: Intro behavior
             player.sendTitlePart(TitlePart.TIMES, Title.Times.times(Duration.ZERO, Duration.ofMillis(1500), Duration.ofMillis(500)));

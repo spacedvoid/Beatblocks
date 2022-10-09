@@ -1,8 +1,7 @@
 package net.spacedvoid.beatblocks.singleplayer.parser;
 
 import net.spacedvoid.beatblocks.common.charts.Charts;
-import net.spacedvoid.beatblocks.common.exceptions.BeatblocksException;
-import net.spacedvoid.beatblocks.common.exceptions.CommandFailedException;
+import net.spacedvoid.beatblocks.common.exceptions.DetailedException;
 import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
 import net.spacedvoid.beatblocks.singleplayer.exceptions.ChartFileException;
 import org.bukkit.Bukkit;
@@ -38,10 +37,10 @@ public class DefaultParser {
     public static final double PARSER_VERSION = 1.0;
 
     public CompletableFuture<Chart> readChartAsync(String chartFileName) {
-        return CompletableFuture.supplyAsync(() -> readChart(chartFileName)).exceptionally(thrown -> {throw new BeatblocksException("Reading chart failed", thrown);});
+        return CompletableFuture.supplyAsync(() -> readChart(chartFileName));
     }
 
-    public Chart readChart(String chartName) throws CommandFailedException {
+    public Chart readChart(String chartName) throws DetailedException {
         File chartFile = new File(Charts.getChartPath(chartName));
         if(!chartFile.exists()) throw new ChartFileException("The chart file could not be found, or is not listed");
         Chart chart = new Chart();

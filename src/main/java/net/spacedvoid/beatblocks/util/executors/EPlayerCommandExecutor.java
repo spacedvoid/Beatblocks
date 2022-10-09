@@ -2,7 +2,7 @@ package net.spacedvoid.beatblocks.util.executors;
 
 import dev.jorel.commandapi.exceptions.WrapperCommandSyntaxException;
 import dev.jorel.commandapi.executors.PlayerCommandExecutor;
-import net.spacedvoid.beatblocks.common.exceptions.CommandFailedException;
+import net.spacedvoid.beatblocks.common.exceptions.DetailedException;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
@@ -22,10 +22,10 @@ public class EPlayerCommandExecutor implements PlayerCommandExecutor {
 		try {
 			executor.run(sender,args);
 		}
-		catch (CommandFailedException exception) {
-			sender.sendMessage(ChatColor.RED + "Command Failed: " + exception.getMessage());
+		catch (DetailedException exception) {
+			sender.sendMessage(ChatColor.RED + exception.getMessage());
 		} catch (RuntimeException exception) {
-			sender.sendMessage(ChatColor.RED + "Command Failed: " + new CommandFailedException(exception).getMessage());
+			sender.sendMessage(ChatColor.RED + new DetailedException(exception).getMessage());
 		}
 	}
 }

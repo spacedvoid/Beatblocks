@@ -1,6 +1,5 @@
 package net.spacedvoid.beatblocks.singleplayer.parser;
 
-import net.spacedvoid.beatblocks.common.exceptions.BeatblocksException;
 import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
 
 import java.util.concurrent.CompletableFuture;
@@ -10,7 +9,7 @@ public class YamlParser {
 	public static final String PARSER_FORMAT = "YAML-1.0";
 
 	public CompletableFuture<Chart> readChartAsync(String chartFileName) {
-		return CompletableFuture.supplyAsync(() -> readChart(chartFileName)).exceptionally(thrown -> {throw new BeatblocksException("Reading chart failed", thrown);});
+		return CompletableFuture.supplyAsync(() -> readChart(chartFileName));
 	}
 
 	public Chart readChart(String chartName) {

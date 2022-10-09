@@ -1,6 +1,6 @@
 package net.spacedvoid.beatblocks.common.exceptions;
 
-public class BeatblocksException extends CommandFailedException {
+public class BeatblocksException extends DetailedException {
 	public BeatblocksException(Exception e) {
 		super(e);
 	}

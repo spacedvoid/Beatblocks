@@ -8,7 +8,7 @@ import net.kyori.adventure.text.Component;
 import net.spacedvoid.beatblocks.common.Beatblocks;
 import net.spacedvoid.beatblocks.common.charts.Charts;
 import net.spacedvoid.beatblocks.common.exceptions.BeatblocksException;
-import net.spacedvoid.beatblocks.common.exceptions.CommandFailedException;
+import net.spacedvoid.beatblocks.common.exceptions.DetailedException;
 import net.spacedvoid.beatblocks.singleplayer.exceptions.ResourceBuildException;
 import net.spacedvoid.beatblocks.util.FileUtils;
 import org.bukkit.Bukkit;
@@ -51,17 +51,17 @@ public class ResourceBuilder {
 			}
 		}
 		else {
-			final CommandFailedException[] thrown = {null};
+			final DetailedException[] thrown = {null};
 			try (Stream<Path> walk = Files.walk(buildDir.toPath()).sorted(Comparator.reverseOrder())) {
 				walk.forEach(path -> {
 					try {
 						Files.delete(path);
 					} catch (IOException e) {
-						throw thrown[0] = new CommandFailedException("Failed to delete original file", e);
+						throw thrown[0] = new DetailedException("Failed to delete original file", e);
 					}
 				});
-			} catch (IOException | CommandFailedException e) {
-				thrown[0] = new CommandFailedException("Failed to walk existing build directory", e).suppress(thrown[0]);
+			} catch (IOException | DetailedException e) {
+				thrown[0] = new DetailedException("Failed to walk existing build directory", e).suppress(thrown[0]);
 			}
 			if(thrown[0] != null) throw thrown[0];
 		}
@@ -114,7 +114,7 @@ public class ResourceBuilder {
 					Files.createDirectories(destPath.getParent());
 					Files.copy(soundFile.toPath(), destPath, StandardCopyOption.REPLACE_EXISTING);
 				} catch (IOException e) {
-					Bukkit.getLogger().warning("Failed to copy sound file to build dir:" + new CommandFailedException(e).getMessage());
+					Bukkit.getLogger().warning("Failed to copy sound file to build dir:" + new DetailedException(e).getMessage());
 					return;
 				}
 				soundMap.put(soundKey, new SoundArray(soundValue));

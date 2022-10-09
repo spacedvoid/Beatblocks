@@ -1,8 +1,7 @@
 package net.spacedvoid.beatblocks.common.charts;
 
 import net.spacedvoid.beatblocks.common.Beatblocks;
-import net.spacedvoid.beatblocks.common.exceptions.BeatblocksException;
-import net.spacedvoid.beatblocks.common.exceptions.CommandFailedException;
+import net.spacedvoid.beatblocks.common.exceptions.DetailedException;
 import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
 import net.spacedvoid.beatblocks.singleplayer.exceptions.ChartFileException;
 import net.spacedvoid.beatblocks.singleplayer.parser.DefaultParser;
@@ -11,6 +10,7 @@ import org.bukkit.ChatColor;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.AbstractMap;
@@ -64,7 +64,7 @@ public class Charts {
 				if(e.getCause() instanceof ChartFileException) {
 					Bukkit.getLogger().warning("Failed to read chart " + key + ": " + e.getCause().getMessage());
 				}
-				else Bukkit.getLogger().warning("Failed to read chart " + key + ": " + new CommandFailedException(e).getMessage());
+				else Bukkit.getLogger().warning("Failed to read chart " + key + ": " + new DetailedException(e).getMessage());
 			} catch (InterruptedException e) {
 				throw new RuntimeException(e);
 			}
@@ -87,7 +87,7 @@ public class Charts {
 		    Bukkit.getLogger().info("Beatblocks charts folder not found. Creating /plugins/Beatblocks/charts...");
 		    try { Files.createDirectories(chartsFolder.toPath()); }
 			catch (IOException e) {
-				throw new BeatblocksException("Failed to create charts folder", e);
+				throw new UncheckedIOException("Failed to create charts folder", e);
 			}
 		    return;
 	    }
