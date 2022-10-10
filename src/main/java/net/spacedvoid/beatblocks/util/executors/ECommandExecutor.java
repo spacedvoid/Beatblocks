@@ -3,6 +3,7 @@ package net.spacedvoid.beatblocks.util.executors;
 import dev.jorel.commandapi.exceptions.WrapperCommandSyntaxException;
 import dev.jorel.commandapi.executors.CommandExecutor;
 import net.spacedvoid.beatblocks.common.exceptions.DetailedException;
+import net.spacedvoid.beatblocks.common.exceptions.UncheckedThrowable;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
@@ -23,11 +24,13 @@ public class ECommandExecutor implements CommandExecutor {
 	public void run(CommandSender sender, Object[] args) throws WrapperCommandSyntaxException {
 		try {
 			executor.run(sender, args);
+		} catch (UncheckedThrowable e) {
+			sender.sendMessage(ChatColor.RED + e.getCause().getMessage());
 		} catch (DetailedException exception) {
 			sender.sendMessage(ChatColor.RED + exception.getMessage());
 		} catch (RuntimeException exception) {
 			Throwable cause;
-			if(exception instanceof UncheckedIOException) cause = exception.getCause();
+			if(exception instanceof UncheckedIOException) cause = ((UncheckedIOException)exception).getCause();
 			else cause = exception;
 			sender.sendMessage(ChatColor.RED + "Command Failed: " + new DetailedException(cause).getMessage());
 		}

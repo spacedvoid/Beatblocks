@@ -9,6 +9,7 @@ import net.spacedvoid.beatblocks.common.Board;
 import net.spacedvoid.beatblocks.common.charts.ChartDisplayer;
 import net.spacedvoid.beatblocks.common.charts.Charts;
 import net.spacedvoid.beatblocks.common.exceptions.CommandFailedException;
+import net.spacedvoid.beatblocks.common.exceptions.UncheckedThrowable;
 import net.spacedvoid.beatblocks.resourcepack.ResourceBuilder;
 import net.spacedvoid.beatblocks.singleplayer.SinglePlayer;
 import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
@@ -62,8 +63,10 @@ public class Commands {
 				.executes(executor((sender, args) -> {
 					try {
 						Charts.listChartsAsync().get();
-					} catch (InterruptedException | ExecutionException e) {
-						throw new CommandFailedException("An error occurred while listing charts.", e);
+					} catch (InterruptedException e) {
+						throw new RuntimeException(e);
+					} catch (ExecutionException e) {
+						throw new UncheckedThrowable(e);
 					}
 					sender.sendMessage(ChartDisplayer.getListDisplay());
 				}))
@@ -80,13 +83,16 @@ public class Commands {
 								public void run() {
 									if(future.isDone()) {
 										this.cancel();
+										Chart chart;
 										try {
-											sender.sendMessage(ChartDisplayer.getChartInfo(future.get()));
+											chart = future.get();
 										} catch (InterruptedException e) {
-											throw new CommandFailedException(e);
+											throw new RuntimeException(e);
 										} catch (ExecutionException e) {
-											throw new CommandFailedException("An error occurred while reading the chart file.", e.getCause());
+											sender.sendMessage(ChatColor.RED + e.getCause().getMessage());
+											return;
 										}
+										sender.sendMessage(ChartDisplayer.getChartInfo(chart));
 									}
 								}
 							}.runTaskTimer(Beatblocks.getPlugin(), 0, 1);
@@ -103,8 +109,10 @@ public class Commands {
 						if(!listChartsTask.isDone()) sender.sendMessage(Component.text("Blocking server thread for result. This might cause lag..."));
 						try {
 							listChartsTask.get();
-						} catch (InterruptedException | ExecutionException e) {
-							throw new CommandFailedException("An error occurred whilst loading the chart list:", e.getCause());
+						} catch (InterruptedException e) {
+							throw new RuntimeException("An error occurred whilst loading the chart list:", e.getCause());
+						} catch (ExecutionException e) {
+							throw new UncheckedThrowable(e.getCause());
 						}
 						sender.sendMessage(Component.text(ChatColor.GREEN + "Successfully reloaded the list!"));
 					}, 5);

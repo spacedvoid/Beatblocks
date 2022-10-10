@@ -118,7 +118,7 @@ public class DefaultParser implements IParser {
         }
         if(!chart.validate().equals("")) {
             Charts.setFileStatus(chartPath, Charts.ChartStatus.INVALID_FORMAT);
-            throw new ChartFileException("One or more values are missing in chart file:\n" + chart.validate());
+            throw new ChartFileException("One or more values are missing in chart file: " + chart.validate());
         }
         if(!new File(chartPath.toAbsolutePath().getParent().toString(), chart.getString(Chart.soundFile)).exists()) {
             Charts.setFileStatus(chartPath, Charts.ChartStatus.NO_SOUND_FILE);

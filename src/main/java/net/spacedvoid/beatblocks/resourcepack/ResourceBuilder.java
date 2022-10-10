@@ -31,7 +31,6 @@ import java.util.stream.Stream;
 
 import static net.spacedvoid.beatblocks.util.FileUtils.createFile;
 
-//TODO: Fix resource building not working
 public class ResourceBuilder {
 	private static volatile boolean lock = false;
 

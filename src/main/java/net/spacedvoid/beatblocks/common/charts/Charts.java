@@ -2,9 +2,8 @@ package net.spacedvoid.beatblocks.common.charts;
 
 import net.spacedvoid.beatblocks.common.Beatblocks;
 import net.spacedvoid.beatblocks.common.exceptions.BeatblocksException;
-import net.spacedvoid.beatblocks.common.exceptions.DetailedException;
+import net.spacedvoid.beatblocks.common.exceptions.UncheckedThrowable;
 import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
-import net.spacedvoid.beatblocks.singleplayer.exceptions.ChartFileException;
 import net.spacedvoid.beatblocks.singleplayer.parser.DefaultParser;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -72,7 +71,19 @@ public class Charts {
 		Bukkit.getLogger().info("Loading all charts");
 		listCharts();
 		DefaultParser parser = new DefaultParser();
-		for(String key : CHARTS.keySet()) {
+		List<AbstractMap.SimpleEntry<String, CompletableFuture<Chart>>> futures = new ArrayList<>();
+		CHARTS.keySet().forEach(consumer(key -> futures.add(new AbstractMap.SimpleEntry<>(key, parser.readChartAsync(getChartPath(key))))));
+		futures.forEach(entry -> {
+			try {
+				entry.getValue().get();
+			} catch (ExecutionException e) {
+				throw new UncheckedThrowable(e.getCause());
+			} catch (InterruptedException e) {
+				throw new RuntimeException("Failed to read chart file " + entry.getKey(), e);
+			}
+		});
+
+		/*for(String key : CHARTS.keySet()) {
 			CompletableFuture<Chart> future = parser.readChartAsync(getChartPath(key));
 			try {
 				future.get();
@@ -84,7 +95,7 @@ public class Charts {
 			} catch (InterruptedException e) {
 				throw new RuntimeException(e);
 			}
-		}
+		}*/
 	}
 
 	public static void clearChartList() {

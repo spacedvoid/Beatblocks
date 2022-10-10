@@ -10,6 +10,7 @@ import net.spacedvoid.beatblocks.common.Beatblocks;
 import net.spacedvoid.beatblocks.common.Board;
 import net.spacedvoid.beatblocks.common.charts.Charts;
 import net.spacedvoid.beatblocks.common.exceptions.BeatblocksException;
+import net.spacedvoid.beatblocks.common.exceptions.UncheckedThrowable;
 import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
 import net.spacedvoid.beatblocks.singleplayer.parser.DefaultParser;
 import org.bukkit.Bukkit;
@@ -65,7 +66,7 @@ public class Game {
                 this.chart = chart.get();
                 Bukkit.getLogger().info("Force loading chart. The \"server is too slow\" messages can be ignored.");
             } catch (ExecutionException e) {
-                throw new BeatblocksException("Failed to load chart file", e.getCause());
+                throw new UncheckedThrowable(e.getCause());
             } catch (InterruptedException e) {
                 throw new RuntimeException("There was an error while reading the chart file", e.getCause());
             }
