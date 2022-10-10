@@ -1,6 +1,7 @@
 package net.spacedvoid.beatblocks.common.charts;
 
 import net.spacedvoid.beatblocks.common.Beatblocks;
+import net.spacedvoid.beatblocks.common.exceptions.BeatblocksException;
 import net.spacedvoid.beatblocks.common.exceptions.DetailedException;
 import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
 import net.spacedvoid.beatblocks.singleplayer.exceptions.ChartFileException;
@@ -8,31 +9,27 @@ import net.spacedvoid.beatblocks.singleplayer.parser.DefaultParser;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.AbstractMap;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Stream;
+
+import static net.spacedvoid.beatblocks.util.consumer.WrapperConsumer.*;
 
 public class Charts {
-	public static final Path chartFolderPath = Path.of(Beatblocks.getPlugin().getDataFolder().getAbsolutePath() + "/charts");
-
-	public static final Map<String, Map.Entry<Map.Entry<String, String>, ChartStatus>> CHARTS = new HashMap<>();
-
-	public static String getChartPath(String chartName) {
-		return CHARTS.get(chartName).getKey().getKey();
+	static {
+		createChartFolder();
 	}
 
-	public static String getSoundPath(String chartName) {
-		return CHARTS.get(chartName).getKey().getValue();
-	}
+	public static final Path chartFolderPath = Path.of(Beatblocks.getPlugin().getDataFolder().getAbsolutePath() ,"charts");
 
-	public static Map.Entry<String, String> getChartPaths(String chartName) {
+	public static final Map<String, AbstractMap.SimpleEntry<Path, ChartStatus>> CHARTS = Collections.synchronizedMap(new HashMap<>());
+
+	public static Path getChartPath(String chartName) {
 		return CHARTS.get(chartName).getKey();
 	}
 
@@ -40,13 +37,32 @@ public class Charts {
 		return CHARTS.get(chartName).getValue();
 	}
 
-	public static Map.Entry<Map.Entry<String, String>, ChartStatus> getFullEntry(String chartName) {
+	public static AbstractMap.SimpleEntry<Path, ChartStatus> getFullEntry(String chartName) {
 		return CHARTS.get(chartName);
 	}
 
+	/**
+	 * May not point an absolute sound file.
+	 */
+	public static Path getSoundPath(String chartName, String soundFileName) {
+		return Path.of(chartFolderPath.toString(), chartName, soundFileName);
+	}
+
 	public static void setFileStatus(String chartName, ChartStatus status) {
-		if(CHARTS.get(chartName) == null) listCharts();
-		CHARTS.put(chartName, new AbstractMap.SimpleEntry<>(getChartPaths(chartName), status));
+		if(CHARTS.get(chartName) == null) throw new BeatblocksException("No such chart file " + chartName);
+		getFullEntry(chartName).setValue(status);
+		CHARTS.put(chartName, getFullEntry(chartName));
+	}
+
+	/**
+	 * The param {@code chartPath} is assured to point a chart file, valid or not. Caution when using.
+	 */
+	public static void setFileStatus(Path chartPath, ChartStatus status) {
+		List<Map.Entry<String, AbstractMap.SimpleEntry<Path, ChartStatus>>> entries =
+			CHARTS.entrySet().stream().filter(entry -> entry.getValue().getKey().equals(chartPath)).toList();
+		if(entries.size() == 1 || entries.size() == 0) {
+			CHARTS.put(entries.get(0).getKey(), new AbstractMap.SimpleEntry<>(entries.get(0).getValue().getKey(), status));
+		}
 	}
 
 	/**
@@ -57,7 +73,7 @@ public class Charts {
 		listCharts();
 		DefaultParser parser = new DefaultParser();
 		for(String key : CHARTS.keySet()) {
-			CompletableFuture<Chart> future = parser.readChartAsync(key);
+			CompletableFuture<Chart> future = parser.readChartAsync(getChartPath(key));
 			try {
 				future.get();
 			} catch (ExecutionException e) {
@@ -75,62 +91,63 @@ public class Charts {
 		CHARTS.clear();
 	}
 
-	public static final String BIC_EXTENTION = ".bic";
+	public static final String BIC_EXTENSION = ".bic";
 
+	/**
+	 * Silently ignores unexpected files.
+	 */
 	public static CompletableFuture<Void> listChartsAsync() {
 		return CompletableFuture.runAsync(Charts::listCharts);
 	}
 
+	/**
+	 * Silently ignores unexpected files.
+	 */
 	public static void listCharts() {
-		File chartsFolder = chartFolderPath.toFile();
-	    if(!chartsFolder.exists()) {
-		    Bukkit.getLogger().info("Beatblocks charts folder not found. Creating /plugins/Beatblocks/charts...");
-		    try { Files.createDirectories(chartsFolder.toPath()); }
-			catch (IOException e) {
-				throw new UncheckedIOException("Failed to create charts folder", e);
-			}
-		    return;
-	    }
-	    File[] chartFolderList = chartsFolder.listFiles();
-	    if(chartFolderList == null || !chartsFolder.isDirectory()) {
-			Bukkit.getLogger().warning("Folder /plugins/Beatblocks/charts cannot be found or is not a directory");
-			return;
-	    }
-	    for(File chartFolder : chartFolderList) {
-			if(chartFolder.isFile()) continue;
-			File[] list = chartFolder.listFiles();
-			if(list == null) {
-				Bukkit.getLogger().warning("Folder " + chartFolder.getPath() + " did not exist or an I/O error occurred; Skipping");
-				continue;
-			}
-		    File chart = null;
-		    File sound = null;
-			for(File file : list) {
-				if(file.isDirectory()) continue;
-				if(file.getName().endsWith(".ogg")) {
-					Bukkit.getLogger().info("Found sound file " + file.getAbsolutePath());
-					sound = file;
+		try (Stream<Path> listOuter = Files.list(chartFolderPath)) {
+			listOuter.filter(Files::isDirectory).forEach(consumer(pathOuter -> {
+				try (Stream<Path> listInner = Files.list(pathOuter)) {
+					List<Path> chartPaths = listInner.filter(Files::isRegularFile).filter(p -> p.getFileName().toString().endsWith(BIC_EXTENSION)).toList();
+					if(chartPaths.size() == 1) {
+						chartPaths.forEach(consumer(pathInner -> {
+							Bukkit.getLogger().info("Found chart file " + chartFolderPath.relativize(pathInner));
+							CHARTS.put(pathOuter.getFileName().toString(), new AbstractMap.SimpleEntry<>(pathInner, ChartStatus.NOT_LOADED));
+						}));
+					}
+					else if(chartPaths.size() == 0) {
+						Bukkit.getLogger().info("No bic files at " + pathOuter.toAbsolutePath());
+					}
+					else {
+						Bukkit.getLogger().warning("Two or more chart files at " + pathOuter + "; skipping");
+					}
 				}
-				if(file.getName().endsWith(BIC_EXTENTION)) {
-					Bukkit.getLogger().info("Found chart file " + file.getAbsolutePath());
-					chart = file;
-				}
-			}
-		    if(sound != null && chart != null) {
-			    Bukkit.getLogger().info("Adding chart " + chart + " and sound " + sound);
-			    CHARTS.put(chartFolder.getName(), new AbstractMap.SimpleEntry<>(new AbstractMap.SimpleEntry<>(chart.getAbsolutePath(), sound.getAbsolutePath()), ChartStatus.NOT_LOADED));
-		    }
-		    else if(chart == null) {
-			    Bukkit.getLogger().info("No chart in " + chartFolder.getPath() + "; ignoring");
-		    }
-		    else {
-			    Bukkit.getLogger().info("No sound in " + chartFolder.getPath() + "; ignoring");
-		    }
-	    }
+			}));
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+	}
+
+	private static void createChartFolder() {
+		try {
+			//noinspection ConstantConditions - When called from static block.
+			if(chartFolderPath == null) Files.createDirectories(Path.of(Beatblocks.getPlugin().getDataFolder().getAbsolutePath() ,"charts"));
+			else Files.createDirectories(chartFolderPath);
+		}
+		catch (IOException e) {
+			throw new UncheckedIOException("Failed to create charts folder", e);
+		}
 	}
 
 	public enum ChartStatus {
-		LOADED("Loaded", ChatColor.GREEN), NEEDS_REWRITE(LOADED), INVALID_FORMAT("Invalid chart file", ChatColor.RED), VERSION_MISMATCH("Version does not match", ChatColor.RED), NO_SOUND_FILE("No sound file", ChatColor.RED), NOT_LOADED("Not loaded", ChatColor.GRAY);
+		/**
+		 * This does not assure that the current chart file is valid; this just shows that this chart file has once been read successfully.
+		 */
+		LOADED("Loaded", ChatColor.GREEN),
+		NEEDS_REWRITE(LOADED),
+		INVALID_FORMAT("Invalid chart file", ChatColor.RED),
+		VERSION_MISMATCH("Version does not match", ChatColor.RED),
+		NO_SOUND_FILE("No sound file", ChatColor.RED),
+		NOT_LOADED("Not loaded", ChatColor.GRAY);
 
 		public final String display;
 		public final ChatColor color;

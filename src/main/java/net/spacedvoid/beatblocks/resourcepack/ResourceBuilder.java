@@ -9,7 +9,9 @@ import net.spacedvoid.beatblocks.common.Beatblocks;
 import net.spacedvoid.beatblocks.common.charts.Charts;
 import net.spacedvoid.beatblocks.common.exceptions.BeatblocksException;
 import net.spacedvoid.beatblocks.common.exceptions.DetailedException;
+import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
 import net.spacedvoid.beatblocks.singleplayer.exceptions.ResourceBuildException;
+import net.spacedvoid.beatblocks.singleplayer.parser.DefaultParser;
 import net.spacedvoid.beatblocks.util.FileUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -93,9 +95,11 @@ public class ResourceBuilder {
 		if(includedUnloaded) Charts.loadAll();
 		Map<String, SoundArray> soundMap = new HashMap<>();
 		try (Writer writer = new FileWriter(soundsJsonFile)) {
-			Charts.CHARTS.keySet().stream().filter(key -> Charts.getChartStatus(key) == Charts.ChartStatus.LOADED).forEach(key -> {
-				File soundFile = new File(Charts.getSoundPath(key));
-				if(!soundFile.exists() || !soundFile.isFile()) {
+			DefaultParser parser = new DefaultParser();
+			Charts.CHARTS.entrySet().stream().filter(entry -> entry.getValue().getValue() == Charts.ChartStatus.LOADED).forEach(entry -> {
+				Chart chart = parser.readChart(entry.getValue().getKey());
+				File soundFile = Charts.getSoundPath(entry.getKey(), chart.getString(Chart.soundFile)).toFile();
+				if(!Files.isRegularFile(soundFile.toPath())) {
 					Bukkit.getLogger().warning("The sound file " + soundFile.getPath() + " cannot be found or is not a file");
 					return;
 				}

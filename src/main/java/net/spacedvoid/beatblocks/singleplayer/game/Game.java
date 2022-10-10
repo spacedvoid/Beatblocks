@@ -30,11 +30,11 @@ public class Game {
     public static final Map<Player, Map.Entry<Location, BlockFace>> boards = new HashMap<>();
     public static final Map<Player, GameInstance> activeGames = new HashMap<>();
 
-    public static void startGame(Player player, String chartFileName) {
+    public static void startGame(Player player, String chartName) {
         if(!boards.containsKey(player)) throw new BeatblocksException("No singleplayer board for " + player.getName() + ".");
-        if(Charts.CHARTS.get(chartFileName) == null)
+        if(Charts.CHARTS.get(chartName) == null)
             throw new BeatblocksException("No such chart! Check typos or try reloading the list.");
-        activeGames.put(player, new GameInstance(player, new DefaultParser().readChartAsync(chartFileName)));
+        activeGames.put(player, new GameInstance(player, new DefaultParser().readChartAsync(Charts.getChartPath(chartName))));
     }
 
     private static void finish(GameInstance instance) {
@@ -90,7 +90,7 @@ public class Game {
         }
     }
 
-    private class NoteEntity {
+    private static class NoteEntity {
         private static final double SPEED = 1.25;    // block / tick
 
         private final Entity noteEntity;

@@ -6,6 +6,8 @@ import net.spacedvoid.beatblocks.common.exceptions.DetailedException;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
+import java.io.UncheckedIOException;
+
 public class ECommandExecutor implements CommandExecutor {
 	private final CommandExecutor executor;
 
@@ -20,11 +22,14 @@ public class ECommandExecutor implements CommandExecutor {
 	@Override
 	public void run(CommandSender sender, Object[] args) throws WrapperCommandSyntaxException {
 		try {
-			executor.run(sender,args);
+			executor.run(sender, args);
 		} catch (DetailedException exception) {
 			sender.sendMessage(ChatColor.RED + exception.getMessage());
 		} catch (RuntimeException exception) {
-			sender.sendMessage(ChatColor.RED + "Command Failed: " + new DetailedException(exception).getMessage());
+			Throwable cause;
+			if(exception instanceof UncheckedIOException) cause = exception.getCause();
+			else cause = exception;
+			sender.sendMessage(ChatColor.RED + "Command Failed: " + new DetailedException(cause).getMessage());
 		}
 	}
 }

@@ -1,7 +1,7 @@
 package net.spacedvoid.beatblocks.common.exceptions;
 
 public class BeatblocksException extends DetailedException {
-	public BeatblocksException(Exception e) {
+	public BeatblocksException(Throwable e) {
 		super(e);
 	}
 

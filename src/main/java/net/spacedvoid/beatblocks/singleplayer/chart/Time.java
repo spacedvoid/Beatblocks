@@ -1,9 +1,6 @@
 package net.spacedvoid.beatblocks.singleplayer.chart;
 
-public class Time {
-	public final int minutes;
-	public final int seconds;
-
+public record Time(int minutes, int seconds) {
 	public Time(int minutes, int seconds) {
 		this.minutes = minutes;
 		this.seconds = seconds;

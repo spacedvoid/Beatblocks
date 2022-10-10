@@ -71,10 +71,10 @@ public class Commands {
 			.then(new LiteralArgument("query")
 				.then(new StringArgument("chart")
 					.executes(executor((sender, args) -> {
-						String chartFileName = (String)args[0];
-						if(Charts.CHARTS.get(chartFileName) != null) {
-							sender.sendMessage(Component.text("Querying data of chart file \"" + chartFileName + ".cht\"..."));
-							CompletableFuture<Chart> future = new DefaultParser().readChartAsync(chartFileName);
+						String chartName = (String)args[0];
+						if(Charts.CHARTS.get(chartName) != null) {
+							sender.sendMessage(Component.text("Querying data of chart file \"" + chartName + ".cht\"..."));
+							CompletableFuture<Chart> future = new DefaultParser().readChartAsync(Charts.getChartPath(chartName));
 							new BukkitRunnable() {
 								@Override
 								public void run() {

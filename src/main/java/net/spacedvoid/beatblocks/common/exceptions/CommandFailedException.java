@@ -9,7 +9,7 @@ public class CommandFailedException extends DetailedException{
 		super(message, cause);
 	}
 
-	public CommandFailedException(Exception cause) {
+	public CommandFailedException(Throwable cause) {
 		super(cause);
 	}
 }

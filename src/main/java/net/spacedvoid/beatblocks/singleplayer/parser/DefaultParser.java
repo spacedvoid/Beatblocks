@@ -32,16 +32,16 @@ chart=
 #,#,#   //tick,lane,hasDoubleAccuracy
 */
 
-public class DefaultParser {
+public class DefaultParser implements IParser {
     public static final String PARSER_FORMAT = "Default-1.0";
     public static final double PARSER_VERSION = 1.0;
 
-    public CompletableFuture<Chart> readChartAsync(String chartFileName) {
-        return CompletableFuture.supplyAsync(() -> readChart(chartFileName));
+    public CompletableFuture<Chart> readChartAsync(Path chartFile) {
+        return CompletableFuture.supplyAsync(() -> readChart(chartFile));
     }
 
-    public Chart readChart(String chartName) throws DetailedException {
-        File chartFile = new File(Charts.getChartPath(chartName));
+    public Chart readChart(Path chartPath) throws DetailedException {
+        File chartFile = chartPath.toFile();
         if(!chartFile.exists()) throw new ChartFileException("The chart file could not be found, or is not listed");
         Chart chart = new Chart();
         Charts.ChartStatus status = Charts.ChartStatus.LOADED;
@@ -54,25 +54,25 @@ public class DefaultParser {
                 String input = chartScanner.next();
                 if(input.matches("^" + Chart.format.id + "=(Default|YAML)-\\d.\\d")) {
                     if(!chart.getValue(Chart.format).serialize(input.split("=")[1])) {
-                        Charts.setFileStatus(chartName, Charts.ChartStatus.INVALID_FORMAT);
+                        Charts.setFileStatus(chartPath, Charts.ChartStatus.INVALID_FORMAT);
                         throw new ChartFileException("Format version of the chart file cannot be serialized.");
                     }
                     if(!chart.formatMatchReaderVersion()) {
-                        Charts.setFileStatus(chartName, Charts.ChartStatus.VERSION_MISMATCH);
+                        Charts.setFileStatus(chartPath, Charts.ChartStatus.VERSION_MISMATCH);
                         throw new ChartFileException("Format version of the chart file does not match the reader version of Beatblocks.");
                     }
                 }
                 else if(!input.matches("^" + Chart.format.id)) {
-                    Charts.setFileStatus(chartName, Charts.ChartStatus.INVALID_FORMAT);
+                    Charts.setFileStatus(chartPath, Charts.ChartStatus.INVALID_FORMAT);
                     throw new ChartFileException("Format key is not appropriate.");
                 }
                 else {
-                    Charts.setFileStatus(chartName, Charts.ChartStatus.INVALID_FORMAT);
+                    Charts.setFileStatus(chartPath, Charts.ChartStatus.INVALID_FORMAT);
                     throw new ChartFileException("Format version is not specified correctly.");
                 }
             }
             else {
-                Charts.setFileStatus(chartName, Charts.ChartStatus.INVALID_FORMAT);
+                Charts.setFileStatus(chartPath, Charts.ChartStatus.INVALID_FORMAT);
                 throw new ChartFileException("The chart file is empty; no content to read");
             }
             line++;
@@ -117,20 +117,19 @@ public class DefaultParser {
             throw new UncheckedIOException(e);
         }
         if(!chart.validate().equals("")) {
-            Charts.setFileStatus(chartName, Charts.ChartStatus.INVALID_FORMAT);
+            Charts.setFileStatus(chartPath, Charts.ChartStatus.INVALID_FORMAT);
             throw new ChartFileException("One or more values are missing in chart file:\n" + chart.validate());
         }
-        String key = Charts.getSoundPath(chartName);
-        if(!Path.of(key).getFileName().toString().equals(chart.getString(Chart.soundFile))) {
-            Charts.setFileStatus(chartName, Charts.ChartStatus.NO_SOUND_FILE);
+        if(!new File(chartPath.toAbsolutePath().getParent().toString(), chart.getString(Chart.soundFile)).exists()) {
+            Charts.setFileStatus(chartPath, Charts.ChartStatus.NO_SOUND_FILE);
             throw new ChartFileException("The sound file " + chart.getString(Chart.soundFile) + " does not exist, or the value is not matching the sound file name");
         }
         //noinspection IntegerDivisionInFloatingPointContext
         if(chart.notes.stream().noneMatch(note -> (3.5 - chart.getInteger(Chart.keys) / 2) <= note.lane && note.lane <= (3.5 + chart.getInteger(Chart.keys) / 2))) {
-            Charts.setFileStatus(chartName, Charts.ChartStatus.INVALID_FORMAT);
+            Charts.setFileStatus(chartPath, Charts.ChartStatus.INVALID_FORMAT);
             throw new ChartFileException("One or more notes' lane exceeds the keys used at the chart");
         }
-        Charts.setFileStatus(chartName, status);
+        Charts.setFileStatus(chartPath, status);
         return chart;
     }
 }

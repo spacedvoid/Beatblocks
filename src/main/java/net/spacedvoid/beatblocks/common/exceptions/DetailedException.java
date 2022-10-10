@@ -12,7 +12,7 @@ public class DetailedException extends RuntimeException {
 		this.message = message;
 	}
 
-	public DetailedException(Exception e) {
+	public DetailedException(Throwable e) {
 		this.cause = e;
 	}
 
@@ -25,7 +25,6 @@ public class DetailedException extends RuntimeException {
 	private String message = null;
 	private List<Throwable> suppressed = null;
 
-	@Override
 	public String getMessage() {
 		StringBuilder messageBuilder = new StringBuilder();
 		if(this.cause != null) {

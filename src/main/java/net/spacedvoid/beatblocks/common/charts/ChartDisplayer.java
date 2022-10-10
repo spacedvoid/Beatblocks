@@ -6,6 +6,8 @@ import net.kyori.adventure.text.event.HoverEvent;
 import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
 import org.bukkit.ChatColor;
 
+import java.nio.file.Path;
+import java.util.AbstractMap;
 import java.util.Map;
 
 public class ChartDisplayer {
@@ -14,7 +16,7 @@ public class ChartDisplayer {
 			+ ChatColor.GREEN + "\u2588" + ChatColor.WHITE + "=Loaded,"
 			+ ChatColor.GRAY + "\u2588" + ChatColor.WHITE + "=Not Loaded," + ChatColor.RED + "\u2588" + "=Error"
 			+ ChatColor.WHITE + "):\n");
-		for(Map.Entry<String, Map.Entry<Map.Entry<String, String>, Charts.ChartStatus>> entry : Charts.CHARTS.entrySet()) {
+		for(Map.Entry<String, AbstractMap.SimpleEntry<Path, Charts.ChartStatus>> entry : Charts.CHARTS.entrySet()) {
 			component = component.append(Component.text(entry.getValue().getValue().color + "[" + entry.getKey() + "] ")
 				.hoverEvent(HoverEvent.showText(Component.text(entry.getValue().getValue().display))));
 		}
