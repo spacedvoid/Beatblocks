@@ -1,77 +1,50 @@
 package net.spacedvoid.beatblocks.resourcepack;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
-import net.spacedvoid.beatblocks.common.Beatblocks;
+import com.github.alexdlaird.ngrok.NgrokClient;
+import com.github.alexdlaird.ngrok.conf.JavaNgrokConfig;
+import com.github.alexdlaird.ngrok.protocol.CreateTunnel;
+import com.github.alexdlaird.ngrok.protocol.Tunnel;
 import net.spacedvoid.beatblocks.singleplayer.exceptions.ResourceBuildException;
-import org.bukkit.Bukkit;
 
-import java.io.*;
-import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.CompletableFuture;
 
 public class PackServer {
-	private static final int DEFAULT_PORT = 25555;
-	private static HttpServer server = null;
+	private NgrokClient ngrokClient;
+	private final CompletableFuture<Void> stages = new CompletableFuture<>();
+	private String URL;
+	private Tunnel tunnel;
 
-	public static String create(Path pack) {
-		if(!Files.isRegularFile(pack)) throw new ResourceBuildException("Failed to find built resource pack");
-		int port = getPort();
-		try {
-			server = HttpServer.create(new InetSocketAddress(port), 0);
-		} catch (IOException e) {
-			throw new UncheckedIOException(e);
-		}
-		server.createContext("/get", new PackHandler(pack));
-		server.setExecutor(null);
-		server.start();
-		return "http://localhost:" + port + "/get";
+	public PackServer() {
+		//noinspection SpellCheckingInspection
+		stages.thenRunAsync(() -> ngrokClient = new NgrokClient.Builder().withJavaNgrokConfig(
+			new JavaNgrokConfig.Builder().withAuthToken("1mUcg7t3PiZeuuj7plxKZUrUqNZ_6CMZi9sz8C1Tz5sfW2RWC").withNgrokPath(Path.of("C:/Personal/ngrok/ngrok.exe")).build()
+		).build());
 	}
 
-	public static void stop() {
-		if(server != null) server.stop(10);
+	public PackServer supplyPath(Path packPath) {
+		if(!Files.isRegularFile(packPath)) throw new ResourceBuildException("Failed to find resource pack");
+		stages.thenRunAsync(() -> {
+			CreateTunnel createTunnel = new CreateTunnel.Builder().withAddr("file:///" + packPath.toAbsolutePath()).build();
+			tunnel = ngrokClient.connect(createTunnel);
+			URL = tunnel.getPublicUrl();
+		});
+		return this;
 	}
 
-	public static int getPort() {
-		int port = getUncheckedPort();
-		return checkPort(port)? port : DEFAULT_PORT;
+	public String getPublicURL() {
+		if(!stages.isDone()) stages.join();
+		return URL;
 	}
 
-	public static int getUncheckedPort() {
-		return Beatblocks.getPlugin().getConfig().getInt("pack-port");
-	}
-
-	private static boolean checkPort(int port) {
-		if(port <= 0 || port > 65535) {
-			Bukkit.getScheduler().runTask(Beatblocks.getPlugin(), () -> Bukkit.getLogger().warning("Port " + getUncheckedPort() + " exceeds its range; reset to default " + DEFAULT_PORT));
-			Beatblocks.getPlugin().getConfig().set("pack-port", DEFAULT_PORT);
-			return false;
-		}
-		return true;
-	}
-
-	static class PackHandler implements HttpHandler {
-		private final Path packPath;
-
-		public PackHandler(Path packPath) {
-			this.packPath = packPath;
-		}
-
-		@Override
-		public void handle(HttpExchange t) throws IOException {
-			String response;
-			try (InputStream stream = new FileInputStream(packPath.toFile())) {
-				response = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+	public void close() {
+		new Timer().schedule(new TimerTask() {
+			public void run() {
+				ngrokClient.disconnect(URL);
 			}
-			t.getResponseHeaders().set("Content-Type", "application/zip; charset=UTF-8");
-			t.getResponseHeaders().set("Accept-Ranges", "bytes");
-			t.sendResponseHeaders(200, response.length());
-			OutputStream os = t.getResponseBody();
-			os.write(response.getBytes(StandardCharsets.UTF_8));
-			os.close();
-		}
+		}, 10000);
 	}
 }

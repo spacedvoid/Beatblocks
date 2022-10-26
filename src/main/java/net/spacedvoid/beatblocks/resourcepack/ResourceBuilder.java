@@ -37,12 +37,14 @@ public class ResourceBuilder {
 	public static void buildAsync(Audience sender, boolean includeUnloaded, boolean hostPack) {
 		if(!lock) {
 			lock = true;
-			CompletableFuture<Void> future = CompletableFuture.runAsync(() -> build(sender, includeUnloaded, hostPack));
+			CompletableFuture<Void> future = CompletableFuture.supplyAsync(() -> build(sender, includeUnloaded)).thenAcceptAsync(path -> {
+				if(hostPack) hostPack(sender, path);
+			});
 			buildTask(future);
 		} else throw new BeatblocksException("A build is currently on progress!");
 	}
 
-	private static void build(Audience sender, boolean includedUnloaded, boolean hostPack) {
+	private static Path build(Audience sender, boolean includedUnloaded) {
 		File buildDir = new File(Beatblocks.getPlugin().getDataFolder().getAbsolutePath() + "/" + "resourcepack");
 		if(!buildDir.exists()) {
 			try {
@@ -78,7 +80,7 @@ public class ResourceBuilder {
 		}
 		try (FileWriter writer = new FileWriter(mcmetaFile)) {
 			Gson gson = new GsonBuilder().setPrettyPrinting().create();
-			//noinspection unused,FieldMayBeFinal
+			//noinspection unused
 			gson.toJson(new MetaData(), writer);
 		} catch (JsonIOException | IOException e) {
 			throw new ResourceBuildException("Failed to write mcmeta file", e);
@@ -128,7 +130,12 @@ public class ResourceBuilder {
 		}
 		Path path = new ZipUtils().zip(buildDir.getPath(), Beatblocks.getPlugin().getDataFolder().getPath() + "/beatblocks-resource.zip");
 		Bukkit.getScheduler().runTask(Beatblocks.getPlugin(), () -> sender.sendMessage(Component.text(ChatColor.GREEN + "Finished building resources.")));
-		if(!hostPack) return;
+		return path;
+	}
+
+	private static void hostPack(Audience sender, Path path) {
+		Bukkit.getScheduler().runTask(Beatblocks.getPlugin(), () -> sender.sendMessage(Component.text(ChatColor.GREEN + "Starting Ngrok http tunnel")));
+		PackServer server = new PackServer().supplyPath(path);
 		byte[] hash;
 		try (DigestInputStream digestStream = new DigestInputStream(new BufferedInputStream(new FileInputStream(path.toFile())), MessageDigest.getInstance("SHA-1"))) {
 			//noinspection StatementWithEmptyBody
@@ -139,10 +146,9 @@ public class ResourceBuilder {
 		} catch (NoSuchAlgorithmException e) {
 			throw new RuntimeException(e.getMessage() + "\nIf you see this message, report to me.");
 		}
-		Bukkit.getScheduler().runTask(Beatblocks.getPlugin(), () -> sender.sendMessage(Component.text(ChatColor.GREEN + "Starting localhost server at port " + PackServer.getPort())));
-		String url = PackServer.create(path);
-		Bukkit.getScheduler().runTaskLater(Beatblocks.getPlugin(), () -> Bukkit.getOnlinePlayers().forEach(player -> player.setResourcePack(url, hash)), 5);
-		PackServer.stop();
+		String url = server.getPublicURL();
+		Bukkit.getScheduler().runTask(Beatblocks.getPlugin(), () -> Bukkit.getOnlinePlayers().forEach(player -> player.setResourcePack(url, hash)));
+		server.close();
 	}
 
 	public static List<String> getDefaultResources() {
@@ -176,6 +182,8 @@ public class ResourceBuilder {
 			}
 		}.runTaskTimer(Beatblocks.getPlugin(), 0, 1);
 	}
+
+	// -- Classes for pack.mcmeta json creation --
 
 	@SuppressWarnings("unused")
 	private static class MetaData {
