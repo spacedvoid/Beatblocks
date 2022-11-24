@@ -1,7 +1,5 @@
 # BIC(Beatblocks Intermediate Chart) 채보 파일
 
----
-
 **중요:** 아래에서 설명하는 채보 파일은 Beatblocks가 인식하고 바로 실행할 수 있는, 바이트코드와 비슷한 형식의 파일로서
 플레이어가 직접 작성하는 것은 난이도가 매우 높습니다.
 이 문서는 단순히 변환된 채보 파일의 구조를 설명하는 글로써, 이 글을 읽고 바로 채보를 만들 수 있다는 보장은 할 수 없습니다.
@@ -65,4 +63,4 @@ chart=
 | **keys**       | - 사용할 키의 개수를 표시<br>- 가능한 값은 2, 4, 6, 8<br>- 각 값별 사용하는 라인 <br>&nbsp;&nbsp;&nbsp;- 2<!---->**:** 4 ~ 5 <br>&nbsp;&nbsp;&nbsp;- 4<!---->**:** 3 ~ 6 <br>&nbsp;&nbsp;&nbsp;- 6<!---->**:** 2 ~ 7 <br>&nbsp;&nbsp;&nbsp;- 8<!---->**:** 1 ~ 8                                                                                                                                                                                                                  |
 | **chart**      | - 구성 요소는 `타이밍,라인,판정` <br>- 타이밍 : 이전 노트 이후 노트가 생성되는 딜레이, 단위는 tick <br>- 라인 : 노트가 내려올 라인 <br>&nbsp;&nbsp;&nbsp;- 0\~3 또는 5\~8 까지의 정수값<br>&nbsp;&nbsp;&nbsp;- 순서대로 0<!---->**:** 1번 라인, 1<!---->**:** 2번 라인, **···** , 3<!---->**:** 4번 라인, 5<!---->**:** 5번 라인, **···** , 8<!---->**:** 8번 라인 <br>&nbsp;&nbsp;&nbsp;- `keys`에 명시된 사용할 라인을 벗어날 수 없음 <br>- 판정 : 애매한 판정 여부. 자세한 내용은 [게임플레이](./Gameplay.md#애매한-판정에-대해) 참고 <br>- 각 구성 요소가 파일 끝까지, 각 노트마다 한 줄씩 표현 |
 
-[^regex]: 정규표현식으로는 `[a-zA-Z0-9.: ]+` ([참고](../src/main/java/net/spacedvoid/beatblocks/common/parser/DefaultParser.java#L82))
+[^regex]: 정규표현식으로는 `[a-zA-Z0-9.: ]+` ([참고](../src/main/java/net/spacedvoid/beatblocks/common/parser/DefaultParser.java#L77))
