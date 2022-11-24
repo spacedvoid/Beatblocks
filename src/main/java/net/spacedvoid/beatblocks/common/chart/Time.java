@@ -1,4 +1,4 @@
-package net.spacedvoid.beatblocks.singleplayer.chart;
+package net.spacedvoid.beatblocks.common.chart;
 
 public record Time(int minutes, int seconds) {
 	public Time(int minutes, int seconds) {

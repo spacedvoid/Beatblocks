@@ -1,19 +1,20 @@
-package net.spacedvoid.beatblocks.singleplayer.parser;
+package net.spacedvoid.beatblocks.common.parser;
 
+import net.spacedvoid.beatblocks.common.chart.Chart;
 import net.spacedvoid.beatblocks.common.charts.Charts;
+import net.spacedvoid.beatblocks.common.exceptions.ChartFileException;
 import net.spacedvoid.beatblocks.common.exceptions.DetailedException;
-import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
-import net.spacedvoid.beatblocks.singleplayer.exceptions.ChartFileException;
+import net.spacedvoid.beatblocks.common.exceptions.UncheckedThrowable;
 import org.bukkit.Bukkit;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.Comparator;
 import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
 
@@ -34,7 +35,6 @@ chart=
 
 public class DefaultParser implements IParser {
     public static final String PARSER_FORMAT = "Default-1.0";
-    public static final double PARSER_VERSION = 1.0;
 
     public CompletableFuture<Chart> readChartAsync(Path chartFile) {
         return CompletableFuture.supplyAsync(() -> readChart(chartFile));
@@ -52,19 +52,15 @@ public class DefaultParser implements IParser {
             int line = 1;
             if(chartScanner.hasNextLine()) {
                 String input = chartScanner.next();
-                if(input.matches("^" + Chart.format.id + "=(Default|YAML)-\\d.\\d")) {
+                if(input.matches("^" + Chart.format.id + "=(Default|YAML)-\\d.\\d$")) {
                     if(!chart.getValue(Chart.format).serialize(input.split("=")[1])) {
                         Charts.setFileStatus(chartPath, Charts.ChartStatus.INVALID_FORMAT);
-                        throw new ChartFileException("Format version of the chart file cannot be serialized.");
+                        throw new ChartFileException("Format version of the chart file cannot be serialized");
                     }
-                    if(!chart.formatMatchReaderVersion()) {
+                    if(!chart.getString(Chart.format).equals(PARSER_FORMAT)) {
                         Charts.setFileStatus(chartPath, Charts.ChartStatus.VERSION_MISMATCH);
-                        throw new ChartFileException("Format version of the chart file does not match the reader version of Beatblocks.");
+                        throw new ChartFileException("Format version of the chart file does not match the reader version of Parser - must be " + PARSER_FORMAT);
                     }
-                }
-                else if(!input.matches("^" + Chart.format.id)) {
-                    Charts.setFileStatus(chartPath, Charts.ChartStatus.INVALID_FORMAT);
-                    throw new ChartFileException("Format key is not appropriate.");
                 }
                 else {
                     Charts.setFileStatus(chartPath, Charts.ChartStatus.INVALID_FORMAT);
@@ -94,11 +90,6 @@ public class DefaultParser implements IParser {
                             String[] split = input.split(",");
                             chart.notes.add(Chart.ChartNote.of(Integer.parseInt(split[0]), Integer.parseInt(split[1]), split[2].equals("1")));
                         }
-                        else if(input.matches("^[a-z-]+(=)[a-zA-Z0-9.]+$")) {
-                            status = Charts.ChartStatus.NEEDS_REWRITE;
-                            Bukkit.getLogger().warning("Unexpected chart data at chart file " + chartFile.getPath() + ", line " + line + "; trailing data will not be saved");
-                            Bukkit.getLogger().warning(input);
-                        }
                         else {
                             status = Charts.ChartStatus.NEEDS_REWRITE;
                             Bukkit.getLogger().warning("Invalid note format at chart file " + chartFile.getPath() + ", line " + line + "; ignoring");
@@ -114,18 +105,19 @@ public class DefaultParser implements IParser {
                 line++;
             }
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new UncheckedThrowable(e);
         }
-        if(!chart.validate().equals("")) {
+        chart.notes.sort(Comparator.comparingInt(note -> note.info.timing));
+        if(chart.validate() != null) {
             Charts.setFileStatus(chartPath, Charts.ChartStatus.INVALID_FORMAT);
             throw new ChartFileException("One or more values are missing in chart file: " + chart.validate());
         }
-        if(!new File(chartPath.toAbsolutePath().getParent().toString(), chart.getString(Chart.soundFile)).exists()) {
+        if(!new File(chartPath.toAbsolutePath().getParent().toString(), chart.getString(Chart.soundFile) + ".ogg").exists()) {
             Charts.setFileStatus(chartPath, Charts.ChartStatus.NO_SOUND_FILE);
-            throw new ChartFileException("The sound file " + chart.getString(Chart.soundFile) + " does not exist, or the value is not matching the sound file name");
+            throw new ChartFileException("Sound file " + chart.getString(Chart.soundFile) + ".ogg does not exist, or the value is not matching the sound file name");
         }
         //noinspection IntegerDivisionInFloatingPointContext
-        if(chart.notes.stream().noneMatch(note -> (3.5 - chart.getInteger(Chart.keys) / 2) <= note.lane && note.lane <= (3.5 + chart.getInteger(Chart.keys) / 2))) {
+        if(chart.notes.stream().noneMatch(note -> (3.5 - chart.getInteger(Chart.keys) / 2) <= note.info.lane && note.info.lane <= (3.5 + chart.getInteger(Chart.keys) / 2))) {
             Charts.setFileStatus(chartPath, Charts.ChartStatus.INVALID_FORMAT);
             throw new ChartFileException("One or more notes' lane exceeds the keys used at the chart");
         }

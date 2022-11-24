@@ -25,10 +25,6 @@ public class DetailedException extends RuntimeException {
 	private String message = null;
 	private List<Throwable> suppressed = null;
 
-	public String getSimpleMessage() {
-		return this.message == null? "" : this.message;
-	}
-
 	@Override
 	public String getMessage() {
 		StringBuilder messageBuilder = new StringBuilder();

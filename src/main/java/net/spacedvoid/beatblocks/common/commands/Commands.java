@@ -5,59 +5,69 @@ import dev.jorel.commandapi.CommandTree;
 import dev.jorel.commandapi.arguments.*;
 import net.kyori.adventure.text.Component;
 import net.spacedvoid.beatblocks.common.Beatblocks;
-import net.spacedvoid.beatblocks.common.Board;
+import net.spacedvoid.beatblocks.common.chart.Chart;
 import net.spacedvoid.beatblocks.common.charts.ChartDisplayer;
 import net.spacedvoid.beatblocks.common.charts.Charts;
 import net.spacedvoid.beatblocks.common.exceptions.CommandFailedException;
 import net.spacedvoid.beatblocks.common.exceptions.UncheckedThrowable;
+import net.spacedvoid.beatblocks.common.game.Game;
+import net.spacedvoid.beatblocks.common.parser.DefaultParser;
+import net.spacedvoid.beatblocks.common.structures.Board;
 import net.spacedvoid.beatblocks.resourcepack.ResourceBuilder;
-import net.spacedvoid.beatblocks.singleplayer.SinglePlayer;
-import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
-import net.spacedvoid.beatblocks.singleplayer.game.Game;
-import net.spacedvoid.beatblocks.singleplayer.parser.DefaultParser;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static net.spacedvoid.beatblocks.util.executors.ECommandExecutor.executor;
-import static net.spacedvoid.beatblocks.util.executors.EConsoleCommandExecutor.consoleExecutor;
 import static net.spacedvoid.beatblocks.util.executors.EPlayerCommandExecutor.playerExecutor;
 
 public class Commands {
 	public static void registerCommands() {
-		new CommandTree("singleplayer").withRequirement(sender -> CommandFlag.isDisabled(CommandFlag.SINGLEPLAYER))
+		new CommandTree("singleplayer").withRequirement(CommandFlag.SINGLEPLAYER::isDisabled)
 			.executes(executor((sender, args) -> {
 				CommandAPI.unregister("singleplayer");
-				SinglePlayer.get().enable();
 				CommandFlag.setFlag(CommandFlag.SINGLEPLAYER, true);
 				sender.sendMessage("Enabled Beatblocks: Singleplayer");
 		})).register();
-		new CommandTree("game").withRequirement(sender -> SinglePlayer.isEnabled && CommandFlag.isEnabled(CommandFlag.SINGLEPLAYER))
-			.then(new LiteralArgument("start")
+		new CommandTree("beatblocks")
+			.then(new LiteralArgument("singleplayer").withRequirement(CommandFlag.SINGLEPLAYER::isEnabled)
 				.then(new StringArgument("chart")
-					.executesPlayer(playerExecutor((player, args) -> {
-						if(Game.activeGames.get(player) != null) throw new CommandFailedException("The game is already running!");
-						Game.startGame(player, (String)args[0]);
-					}))
+					.executesPlayer(playerExecutor((player, args) -> Game.startGame(player, (String)args[0])))
 					.then(new PlayerArgument("player")
-						/*.executes(executor((sender, args) -> {
-							throw CommandAPI.fail("This command is not supported yet :(");
-							//if(Game.activeGames.get(player) != null) throw new CommandFailedException(ChatColor.RED + "The game is already running!");
-							//TODO - multiplayer
-						}))*/
+						.executes(executor((sender, args) -> {
+							Player player = (Player)args[1];
+							if(!player.isOnline()) throw new CommandFailedException("Player is not online!");
+							Game.startGame(player, (String)args[0]);
+						}))
 					)
 				)
 			)
-			/*.then(new LiteralArgument("stop")
+			.then(new LiteralArgument("stop")
 				.executesPlayer(playerExecutor((player, args) -> {
-					//TODO: When force stopping game
-					throw CommandAPI.fail("This command is not supported yet :(");
+					if(Game.activeGames.containsKey(player)) {
+						Game.stop(player, true);
+						player.sendMessage(Component.text("Stopped game"));
+					}
+					else throw new CommandFailedException("Game not in progress");
 				}))
-			)*/.register();
+				.then(new PlayerArgument("player")
+					.executes(executor((sender, args) -> {
+						Player player = (Player)args[0];
+						if(Game.activeGames.containsKey(player)) {
+							Game.stop(player, true);
+							player.sendMessage(Component.text("Stopped game of player " + player.getName()));
+						}
+						else throw new CommandFailedException("Player not found or Game not in progress");
+					}))
+				)
+			)
+			.register();
 		new CommandTree("charts")
 			.then(new LiteralArgument("list")
 				.executes(executor((sender, args) -> {
@@ -66,7 +76,7 @@ public class Commands {
 					} catch (InterruptedException e) {
 						throw new RuntimeException(e);
 					} catch (ExecutionException e) {
-						throw new UncheckedThrowable(e);
+						throw new UncheckedThrowable(e.getCause());
 					}
 					sender.sendMessage(ChartDisplayer.getListDisplay());
 				}))
@@ -118,37 +128,43 @@ public class Commands {
 					}, 5);
 				}))
 			).register();
-		new CommandTree("board").then(new StringArgument("boardType").replaceSuggestions(ArgumentSuggestions.strings("singleplayer", "multiplayer")).executesPlayer(playerExecutor((player, args) -> {
-			switch((String)args[0]) {
-				case "singleplayer" -> Game.registerBoard(player, Board.SINGLEPLAYER);
-				case "multiplayer" -> throw new CommandFailedException("Multiplayer is not supported yet.");
-				default -> throw new CommandFailedException("No such board!");
-			}
-		}))).register();
-		new CommandTree("parserversion").withRequirement(sender -> SinglePlayer.isEnabled && CommandFlag.isEnabled(CommandFlag.DEBUG))
+		new CommandTree("board")
+			.executesPlayer(playerExecutor((player, args) -> {
+				Board found;
+				if((found = Game.boards.get(player.getUniqueId())) != null)
+					player.sendMessage(
+						Component.text("Board found at x: " + found.playerLocation.getBlockX() + ", y: " + found.playerLocation.getBlockY() + ", z: " + found.playerLocation.getBlockZ())
+					);
+				else player.sendMessage(Component.text("No board found!"));
+			}))
+			.then(new StringArgument("boardType").replaceSuggestions(ArgumentSuggestions.strings(ignore -> Arrays.stream(Board.Type.values()).map(type -> type.id).toArray(String[]::new)))
+				.executesPlayer(playerExecutor((player, args) -> {
+					Board.Type type = Board.Type.of((String)args[0]);
+					if(type != null) {
+						Board old;
+						if((old = Game.registerBoard(player, type)) != null) {
+							player.sendMessage("Previous board at [" + old.noteAnchor.getBlockX() + "," + old.noteAnchor.getBlockY() + "," + old.noteAnchor.getBlockZ() + "] was unregistered");
+						}
+					}
+					else throw new CommandFailedException("No such board!");
+				}))
+			).register();
+		new CommandTree("parserversion").withRequirement(CommandFlag.DEBUG::isEnabled)
 			.executes(executor((sender, args) -> sender.sendMessage(Component.text(DefaultParser.PARSER_FORMAT)))).register();
 		// noinspection SpellCheckingInspection
 		new CommandTree("buildresource").withRequirement(sender -> sender instanceof ConsoleCommandSender || sender.getName().equals("CompiledNode"))
-			.executesConsole(consoleExecutor((sender, args) -> {
-				sender.sendMessage("Building the resource pack with loaded charts...");
-				ResourceBuilder.buildAsync(sender, false, false);
-			}))
 			.executes(executor((sender, args) -> {
-				sender.sendMessage("Building the resource pack with loaded charts...");
-				ResourceBuilder.buildAsync(sender, false, true);
+				sender.sendMessage("Building the resource pack...");
+				ResourceBuilder.buildAsync(sender, true);
 			}))
 			.then(new BooleanArgument("includedUnloaded")
-				.executesConsole(consoleExecutor((sender, args) -> {
-					sender.sendMessage("Building the resource pack...");
-					ResourceBuilder.buildAsync(sender, (boolean)args[0], false);
-				}))
 				.executes(executor((sender, args) -> {
 					sender.sendMessage("Building the resource pack...");
-					ResourceBuilder.buildAsync(sender, (boolean)args[0], true);
+					ResourceBuilder.buildAsync(sender, (boolean)args[0]);
 				}))
 			).register();
 		//noinspection SpellCheckingInspection
-		new CommandTree("testexception").withRequirement(sender -> CommandFlag.isEnabled(CommandFlag.DEBUG))
+		new CommandTree("testexception").withRequirement(CommandFlag.DEBUG::isEnabled)
 			.executes(executor((sender, args) -> {
 				throw new RuntimeException("Testing Exception", new RuntimeException("Cause exception"));
 			}))

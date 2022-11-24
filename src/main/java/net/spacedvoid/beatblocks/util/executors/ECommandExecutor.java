@@ -7,8 +7,6 @@ import net.spacedvoid.beatblocks.common.exceptions.UncheckedThrowable;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
-import java.io.UncheckedIOException;
-
 public class ECommandExecutor implements CommandExecutor {
 	private final CommandExecutor executor;
 
@@ -29,10 +27,7 @@ public class ECommandExecutor implements CommandExecutor {
 		} catch (DetailedException exception) {
 			sender.sendMessage(ChatColor.RED + exception.getMessage());
 		} catch (RuntimeException exception) {
-			Throwable cause;
-			if(exception instanceof UncheckedIOException) cause = ((UncheckedIOException)exception).getCause();
-			else cause = exception;
-			sender.sendMessage(ChatColor.RED + "Command Failed: " + new DetailedException(cause).getMessage());
+			sender.sendMessage(ChatColor.RED + "Command Failed: " + new DetailedException(exception).getMessage());
 		}
 	}
 }

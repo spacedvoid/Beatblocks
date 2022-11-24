@@ -1,5 +1,6 @@
 package net.spacedvoid.beatblocks.common.commands;
 
+import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
 public class CommandFlag {
@@ -16,11 +17,11 @@ public class CommandFlag {
 		commandFlag.flag = flag;
 	}
 
-	public static boolean isEnabled(@NotNull CommandFlag commandFlag) {
-		return commandFlag.flag;
+	public boolean isEnabled(CommandSender ignored) {
+		return this.flag;
 	}
 
-	public static boolean isDisabled(@NotNull CommandFlag commandFlag) {
-		return !commandFlag.flag;
+	public boolean isDisabled(CommandSender ignored) {
+		return !this.flag;
 	}
 }

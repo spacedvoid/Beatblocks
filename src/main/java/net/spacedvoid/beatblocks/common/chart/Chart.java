@@ -1,7 +1,6 @@
-package net.spacedvoid.beatblocks.singleplayer.chart;
+package net.spacedvoid.beatblocks.common.chart;
 
-import net.spacedvoid.beatblocks.singleplayer.exceptions.ChartFileException;
-import net.spacedvoid.beatblocks.singleplayer.parser.DefaultParser;
+import net.spacedvoid.beatblocks.common.exceptions.ChartFileException;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -31,7 +30,7 @@ import java.util.stream.Stream;
  */
 
 public class Chart {
-    public static final Map<String, ChartValue<?>> values = new HashMap<>();
+    public static final Map<String, ChartValue<?>> chartValues = new HashMap<>();
     public static final Map<ChartKey<?>, String> keyIDs = new HashMap<>();
 
     public static final ChartKey<StringValue> format = register("format", new StringValue());
@@ -45,12 +44,13 @@ public class Chart {
     public static final ChartKey<IntegerValue> offset = register("offset", new IntegerValue());
     public static final ChartKey<IntegerValue> keys = register("keys", new IntegerValue());
 
-    public final Map<String, ChartValue<?>> value = newValues();
     public final List<ChartNote> notes  = new ArrayList<>();
+
+    public final Map<String, ChartValue<?>> values = newValues();
 
     private static <T extends ChartValue<?>> ChartKey<T> register(String id, ChartValue<T> value) {
         ChartKey<T> key = new ChartKey<>(id);
-        values.put(id, value);
+        chartValues.put(id, value);
         keyIDs.put(key, id);
         return key;
     }
@@ -62,7 +62,7 @@ public class Chart {
 
     private static Map<String, ChartValue<?>> newValues() {
         Map<String, ChartValue<?>> copy = new HashMap<>();
-        values.forEach((string, value) -> {
+        chartValues.forEach((string, value) -> {
             if(value instanceof DoubleValue) {
                 copy.put(string, new DoubleValue());
             }
@@ -79,11 +79,9 @@ public class Chart {
         return copy;
     }
 
-    public boolean formatMatchReaderVersion() {
-        if(this.getString(format) == null) return false;
-        else return this.getString(format).equals(DefaultParser.PARSER_FORMAT);
-    }
-
+    /**
+     * @return String list of invalid categories, or null if none found
+     */
     public String validate() {
         List<String> list = new ArrayList<>();
         if((getStringValue(soundFile)).isInvalid()) list.add(soundFile.id);
@@ -99,12 +97,13 @@ public class Chart {
             if(!(keys == 2 || keys == 4 || keys == 6 || keys == 8)) list.add(Chart.keys.id);
         }
         else list.add(keys.id);
-        if(list.size() == 0) return "";
+        if(notes.size() == 0) list.add("notes");
+        if(list.size() == 0) return null;
         return String.join(",", list);
     }
 
     public ChartValue<?> getValue(ChartKey<?> key) {
-        return this.value.get(keyIDs.get(key));
+        return this.values.get(keyIDs.get(key));
     }
 
     public Integer getInteger(ChartKey<IntegerValue> key) {
@@ -232,13 +231,11 @@ public class Chart {
     }
 
     public static class ChartNote {
-        public int tick;
-        public int lane;
-        public boolean isDoubleAccuracy;
+        public final NoteInfo info;
+        public final boolean isDoubleAccuracy;
 
-        ChartNote(int tick, int lane, boolean isDoubleAccuracy) {
-            this.tick = tick;
-            this.lane = lane;
+        ChartNote(NoteInfo info, boolean isDoubleAccuracy) {
+            this.info = info;
             this.isDoubleAccuracy = isDoubleAccuracy;
         }
 
@@ -249,7 +246,7 @@ public class Chart {
             if(!(lane >= 0 && lane <= 7)) {
                 throw new ChartFileException("The lane must be between 0 to 3 or 5 to 8, inclusive");
             }
-            return new ChartNote(tick, lane, isDoubleAccuracy);
+            return new ChartNote(new NoteInfo(tick, lane), isDoubleAccuracy);
         }
     }
 }

@@ -1,6 +1,6 @@
-package net.spacedvoid.beatblocks.singleplayer.parser;
+package net.spacedvoid.beatblocks.common.parser;
 
-import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
+import net.spacedvoid.beatblocks.common.chart.Chart;
 
 import java.nio.file.Path;
 

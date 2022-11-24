@@ -1,6 +1,4 @@
-package net.spacedvoid.beatblocks.singleplayer.exceptions;
-
-import net.spacedvoid.beatblocks.common.exceptions.BeatblocksException;
+package net.spacedvoid.beatblocks.common.exceptions;
 
 public class ChartFileException extends BeatblocksException {
     public ChartFileException(String msg) {

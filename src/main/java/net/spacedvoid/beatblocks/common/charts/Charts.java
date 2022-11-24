@@ -1,15 +1,13 @@
 package net.spacedvoid.beatblocks.common.charts;
 
 import net.spacedvoid.beatblocks.common.Beatblocks;
-import net.spacedvoid.beatblocks.common.exceptions.BeatblocksException;
+import net.spacedvoid.beatblocks.common.chart.Chart;
 import net.spacedvoid.beatblocks.common.exceptions.UncheckedThrowable;
-import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
-import net.spacedvoid.beatblocks.singleplayer.parser.DefaultParser;
+import net.spacedvoid.beatblocks.common.parser.DefaultParser;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -21,7 +19,11 @@ import static net.spacedvoid.beatblocks.util.consumer.WrapperConsumer.*;
 
 public class Charts {
 	static {
-		createChartFolder();
+		try {
+			Files.createDirectories(Path.of(Beatblocks.getPlugin().getDataFolder().getAbsolutePath() ,"charts"));
+		} catch (IOException e) {
+			throw new UncheckedThrowable(e);
+		}
 	}
 
 	public static final Path chartFolderPath = Path.of(Beatblocks.getPlugin().getDataFolder().getAbsolutePath() ,"charts");
@@ -36,25 +38,15 @@ public class Charts {
 		return CHARTS.get(chartName).getValue();
 	}
 
-	public static AbstractMap.SimpleEntry<Path, ChartStatus> getFullEntry(String chartName) {
-		return CHARTS.get(chartName);
-	}
-
 	/**
 	 * May not point an absolute sound file.
 	 */
 	public static Path getSoundPath(String chartName, String soundFileName) {
-		return Path.of(chartFolderPath.toString(), chartName, soundFileName);
-	}
-
-	public static void setFileStatus(String chartName, ChartStatus status) {
-		if(CHARTS.get(chartName) == null) throw new BeatblocksException("No such chart file " + chartName);
-		getFullEntry(chartName).setValue(status);
-		CHARTS.put(chartName, getFullEntry(chartName));
+		return Path.of(chartFolderPath.toString(), chartName, soundFileName + ".ogg");
 	}
 
 	/**
-	 * The param {@code chartPath} is assured to point a chart file, valid or not. Caution when using.
+	 * The param {@code chartPath} should point a chart file, valid or not. Caution when using.
 	 */
 	public static void setFileStatus(Path chartPath, ChartStatus status) {
 		List<Map.Entry<String, AbstractMap.SimpleEntry<Path, ChartStatus>>> entries =
@@ -79,23 +71,9 @@ public class Charts {
 			} catch (ExecutionException e) {
 				throw new UncheckedThrowable(e.getCause());
 			} catch (InterruptedException e) {
-				throw new RuntimeException("Failed to read chart file " + entry.getKey(), e);
-			}
-		});
-
-		/*for(String key : CHARTS.keySet()) {
-			CompletableFuture<Chart> future = parser.readChartAsync(getChartPath(key));
-			try {
-				future.get();
-			} catch (ExecutionException e) {
-				if(e.getCause() instanceof ChartFileException) {
-					Bukkit.getLogger().warning("Failed to read chart " + key + ": " + e.getCause().getMessage());
-				}
-				else Bukkit.getLogger().warning("Failed to read chart " + key + ": " + new DetailedException(e).getMessage());
-			} catch (InterruptedException e) {
 				throw new RuntimeException(e);
 			}
-		}*/
+		});
 	}
 
 	public static void clearChartList() {
@@ -134,18 +112,7 @@ public class Charts {
 				}
 			}));
 		} catch (IOException e) {
-			throw new UncheckedIOException(e);
-		}
-	}
-
-	private static void createChartFolder() {
-		try {
-			//noinspection ConstantConditions - When called from static block.
-			if(chartFolderPath == null) Files.createDirectories(Path.of(Beatblocks.getPlugin().getDataFolder().getAbsolutePath() ,"charts"));
-			else Files.createDirectories(chartFolderPath);
-		}
-		catch (IOException e) {
-			throw new UncheckedIOException("Failed to create charts folder", e);
+			throw new UncheckedThrowable(e);
 		}
 	}
 

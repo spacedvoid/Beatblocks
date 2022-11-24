@@ -3,7 +3,7 @@ package net.spacedvoid.beatblocks.common.charts;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.HoverEvent;
-import net.spacedvoid.beatblocks.singleplayer.chart.Chart;
+import net.spacedvoid.beatblocks.common.chart.Chart;
 import org.bukkit.ChatColor;
 
 import java.nio.file.Path;
