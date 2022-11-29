@@ -1,15 +1,12 @@
 package net.spacedvoid.beatblocks.common.exceptions;
 
-public class CommandFailedException extends DetailedException{
+public class CommandFailedException extends BeatblocksException{
 	public CommandFailedException(String message) {
-		super(message);
+		super(message, false);
 	}
 
-	public CommandFailedException(String message, Throwable cause) {
-		super(message, cause);
-	}
-
-	public CommandFailedException(Throwable cause) {
-		super(cause);
+	@Override
+	public String getLocalizedMessage() {
+		return this.getMessage();
 	}
 }

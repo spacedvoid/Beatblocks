@@ -10,7 +10,14 @@ public class ResourceBuildException extends BeatblocksException {
 	}
 
 	@Override
+	public String getLocalizedMessage() {
+		return this.getMessage();
+	}
+
 	public ResourceBuildException suppress(Throwable... suppressed) {
-		return (ResourceBuildException)super.suppress(suppressed);
+		for(Throwable suppress : suppressed) {
+			this.addSuppressed(suppress);
+		}
+		return this;
 	}
 }

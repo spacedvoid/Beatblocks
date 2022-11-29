@@ -10,10 +10,10 @@ import net.spacedvoid.beatblocks.common.chart.Chart;
 import net.spacedvoid.beatblocks.common.charts.Charts;
 import net.spacedvoid.beatblocks.common.events.RPAppliedEvent;
 import net.spacedvoid.beatblocks.common.exceptions.BeatblocksException;
-import net.spacedvoid.beatblocks.common.exceptions.DetailedException;
 import net.spacedvoid.beatblocks.common.exceptions.ResourceBuildException;
 import net.spacedvoid.beatblocks.common.exceptions.UncheckedThrowable;
 import net.spacedvoid.beatblocks.common.parser.DefaultParser;
+import net.spacedvoid.beatblocks.util.ExceptionUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -124,7 +124,7 @@ public class ResourceBuilder {
 					Files.createDirectories(destPath.getParent());
 					Files.copy(soundFile, destPath, StandardCopyOption.REPLACE_EXISTING);
 				} catch (IOException e) {
-					Bukkit.getLogger().warning("Failed to copy sound file to build dir:" + new DetailedException(e).getMessage());
+					Bukkit.getLogger().warning("Failed to copy sound file to build dir:" + ExceptionUtil.getFullMessage(e));
 					return;
 				}
 				soundMap.put(soundKey, new SoundArray(soundValue));

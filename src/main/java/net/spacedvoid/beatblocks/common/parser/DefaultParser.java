@@ -3,7 +3,6 @@ package net.spacedvoid.beatblocks.common.parser;
 import net.spacedvoid.beatblocks.common.chart.Chart;
 import net.spacedvoid.beatblocks.common.charts.Charts;
 import net.spacedvoid.beatblocks.common.exceptions.ChartFileException;
-import net.spacedvoid.beatblocks.common.exceptions.DetailedException;
 import net.spacedvoid.beatblocks.common.exceptions.UncheckedThrowable;
 import org.bukkit.Bukkit;
 
@@ -40,7 +39,7 @@ public class DefaultParser implements IParser {
         return CompletableFuture.supplyAsync(() -> readChart(chartFile));
     }
 
-    public Chart readChart(Path chartPath) throws DetailedException {
+    public Chart readChart(Path chartPath) throws ChartFileException {
         File chartFile = chartPath.toFile();
         if(!chartFile.exists()) throw new ChartFileException("The chart file could not be found, or is not listed");
         Chart chart = new Chart();

@@ -163,11 +163,5 @@ public class Commands {
 					ResourceBuilder.buildAsync(sender, (boolean)args[0]);
 				}))
 			).register();
-		//noinspection SpellCheckingInspection
-		new CommandTree("testexception").withRequirement(CommandFlag.DEBUG::isEnabled)
-			.executes(executor((sender, args) -> {
-				throw new RuntimeException("Testing Exception", new RuntimeException("Cause exception"));
-			}))
-			.register();
 	}
 }
