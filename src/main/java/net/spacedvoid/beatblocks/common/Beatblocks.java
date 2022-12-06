@@ -71,9 +71,5 @@ public class Beatblocks extends JavaPlugin {
             config.set("show-stacktrace", true);
             Bukkit.getLogger().info("Key \"show-stacktrace\" at config.yml was set to default value \"true\"");
         }
-        if(!config.isInt("pack-port") || !(config.getInt("pack-port") >= 0 || config.getInt("pack-port") <= 65535)) {
-            config.set("pack-port", 25555);
-            Bukkit.getLogger().info("Key \"pack-port\" at config.yml was set to default value \"25555\"");
-        }
     }
 }

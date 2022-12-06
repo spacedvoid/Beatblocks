@@ -35,6 +35,7 @@ import static net.spacedvoid.beatblocks.util.FileUtils.createFile;
 
 public class ResourceBuilder {
 	static final String RPName = "beatblocks-resource.zip";
+	static final Path OutPath = Beatblocks.getPlugin().getDataFolder().toPath().toAbsolutePath().resolve("out");
 	private static volatile boolean lock = false;
 
 	public static void buildAsync(Audience sender, boolean includeUnloaded) {
@@ -134,7 +135,7 @@ public class ResourceBuilder {
 		} catch (JsonIOException | IOException e) {
 			throw new ResourceBuildException("Failed to write sounds.json", e);
 		}
-		Path path = new ZipUtils().zip(buildDir.getPath(), Beatblocks.getPlugin().getDataFolder().getPath() + "/out/" + RPName);
+		Path path = new ZipUtils().zip(buildDir.getPath(), OutPath.resolve(RPName).toString());
 		Bukkit.getScheduler().runTask(Beatblocks.getPlugin(), () -> sender.sendMessage(Component.text(ChatColor.GREEN + "Finished building resources.")));
 		return path;
 	}
@@ -142,7 +143,6 @@ public class ResourceBuilder {
 	private static void hostPack(Audience sender, Path path) {
 		PackServer server = new PackServer(sender);
 		Bukkit.getScheduler().runTask(Beatblocks.getPlugin(), () -> sender.sendMessage(Component.text(ChatColor.GREEN + "Starting ngrok http tunnel")));
-		server.supplyPath(path);
 		byte[] hash;
 		try (DigestInputStream digestStream = new DigestInputStream(new BufferedInputStream(new FileInputStream(path.toFile())), MessageDigest.getInstance("SHA-1"))) {
 			//noinspection StatementWithEmptyBody
@@ -153,9 +153,9 @@ public class ResourceBuilder {
 		} catch (NoSuchAlgorithmException e) {
 			throw new RuntimeException(e.getMessage() + "\nIf you see this message, report to me.");
 		}
-		String url = server.getPublicURL();
 		String hash1 = bytesToHex(hash);
 		Bukkit.getLogger().info(hash1);
+		String url = server.getPublicURL();
 		Bukkit.getScheduler().runTask(Beatblocks.getPlugin(), () -> {
 			Bukkit.getOnlinePlayers().forEach(player -> {
 				player.setResourcePack(url, hash);

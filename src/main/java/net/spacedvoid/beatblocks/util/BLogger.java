@@ -22,4 +22,8 @@ public class BLogger {
 		Bukkit.getLogger().log(Level.WARNING, msg + " See exception log below.");
 		throw exception;
 	}
+
+	public void warn(String msg) {
+		Bukkit.getLogger().warning(prefix + msg);
+	}
 }
