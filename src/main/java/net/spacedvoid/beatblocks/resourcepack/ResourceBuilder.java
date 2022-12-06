@@ -45,7 +45,7 @@ public class ResourceBuilder {
 				if(players > 0) hostPack(sender, path);
 			});
 			buildTask(future);
-		} else throw new BeatblocksException("A build is currently on progress!");
+		} else throw new BeatblocksException("A build is currently on progress!", false);
 	}
 
 	private static Path build(Audience sender, boolean includedUnloaded) {
@@ -67,10 +67,10 @@ public class ResourceBuilder {
 						throw thrown[0] = new ResourceBuildException("Failed to delete original file", e);
 					}
 				});
-			} catch (IOException | ResourceBuildException e) {
-				thrown[0] = new ResourceBuildException("Failed to walk existing build directory", e).suppress(thrown[0]);
+			} catch (IOException e) {
+				if(thrown[0] != null) throw new ResourceBuildException("Failed to walk existing build directory", e).suppress(thrown[0]);
+				else throw new ResourceBuildException("Failed to walk existing build directory", e);
 			}
-			if(thrown[0] != null) throw thrown[0];
 		}
 		File mcmetaFile = new File(buildDir.getPath() + "/pack.mcmeta");
 		File soundsFolder = new File(buildDir.getPath() + "/assets/beatblocks/sounds");

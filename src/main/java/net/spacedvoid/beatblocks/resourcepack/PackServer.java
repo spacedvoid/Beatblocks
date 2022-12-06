@@ -17,10 +17,7 @@ import org.bukkit.Bukkit;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -33,6 +30,7 @@ public class PackServer {
 	public NgrokClient ngrokClient;
 	public Tunnel tunnel;
 	public String publicUrl;
+	public CountDownLatch latch = new CountDownLatch(1);
 
 	public PackServer(Audience sender) {
 		step = 1;
@@ -73,6 +71,7 @@ public class PackServer {
 				e.printStackTrace();
 				throw e;
 			}
+			latch.countDown();
 		}, executor).exceptionallyAsync(exception -> {
 			ngrokClient.kill();
 			logger.exception("Build failed at stage 2", new UncheckedThrowable(exception));
@@ -85,6 +84,7 @@ public class PackServer {
 		step = 3;
 		try {
 			stages.get();
+			latch.await();
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
 		} catch (ExecutionException e) {

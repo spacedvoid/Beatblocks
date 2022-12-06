@@ -20,7 +20,6 @@ import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -37,7 +36,7 @@ public class Commands {
 		})).register();
 		new CommandTree("beatblocks")
 			.then(new LiteralArgument("singleplayer").withRequirement(CommandFlag.SINGLEPLAYER::isEnabled)
-				.then(new StringArgument("chart")
+				.then(new StringArgument("chart").replaceSuggestions(ArgumentSuggestions.strings(Charts.CHARTS.keySet().toArray(new String[0])))
 					.executesPlayer(playerExecutor((player, args) -> Game.startGame(player, (String)args[0])))
 					.then(new PlayerArgument("player")
 						.executes(executor((sender, args) -> {
@@ -50,7 +49,7 @@ public class Commands {
 			)
 			.then(new LiteralArgument("stop")
 				.executesPlayer(playerExecutor((player, args) -> {
-					if(Game.activeGames.containsKey(player)) {
+					if(Game.activeGames.containsKey(player.getUniqueId())) {
 						Game.stop(player, true);
 						player.sendMessage(Component.text("Stopped game"));
 					}
@@ -59,11 +58,11 @@ public class Commands {
 				.then(new PlayerArgument("player")
 					.executes(executor((sender, args) -> {
 						Player player = (Player)args[0];
-						if(Game.activeGames.containsKey(player)) {
+						if(Game.activeGames.containsKey(player.getUniqueId())) {
 							Game.stop(player, true);
 							player.sendMessage(Component.text("Stopped game of player " + player.getName()));
 						}
-						else throw new CommandFailedException("Player not found or Game not in progress");
+						else throw new CommandFailedException("Player not found or game not in progress");
 					}))
 				)
 			)
@@ -93,16 +92,13 @@ public class Commands {
 								public void run() {
 									if(future.isDone()) {
 										this.cancel();
-										Chart chart;
 										try {
-											chart = future.get();
+											sender.sendMessage(ChartDisplayer.getChartInfo(future.get()));
 										} catch (InterruptedException e) {
 											throw new RuntimeException(e);
 										} catch (ExecutionException e) {
 											sender.sendMessage(ChatColor.RED + e.getCause().getMessage());
-											return;
 										}
-										sender.sendMessage(ChartDisplayer.getChartInfo(chart));
 									}
 								}
 							}.runTaskTimer(Beatblocks.getPlugin(), 0, 1);
@@ -133,11 +129,11 @@ public class Commands {
 				Board found;
 				if((found = Game.boards.get(player.getUniqueId())) != null)
 					player.sendMessage(
-						Component.text("Board found at x: " + found.playerLocation.getBlockX() + ", y: " + found.playerLocation.getBlockY() + ", z: " + found.playerLocation.getBlockZ())
+						Component.text("Board found at x: " + found.boardLocation.getBlockX() + ", y: " + found.boardLocation.getBlockY() + ", z: " + found.boardLocation.getBlockZ())
 					);
 				else player.sendMessage(Component.text("No board found!"));
 			}))
-			.then(new StringArgument("boardType").replaceSuggestions(ArgumentSuggestions.strings(ignore -> Arrays.stream(Board.Type.values()).map(type -> type.id).toArray(String[]::new)))
+			.then(new StringArgument("boardType").replaceSuggestions(ArgumentSuggestions.strings(Charts.CHARTS.keySet().toArray(new String[0])))
 				.executesPlayer(playerExecutor((player, args) -> {
 					Board.Type type = Board.Type.of((String)args[0]);
 					if(type != null) {

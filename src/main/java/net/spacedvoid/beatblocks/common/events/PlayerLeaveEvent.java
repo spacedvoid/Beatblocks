@@ -8,8 +8,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 public class PlayerLeaveEvent implements Listener {
 	@EventHandler
 	public void onPlayerLeave(PlayerQuitEvent event) {
-		if(Game.activeGames.containsKey(event.getPlayer())) Game.stop(event.getPlayer(), true);
+		if(Game.activeGames.containsKey(event.getPlayer().getUniqueId())) Game.stop(event.getPlayer(), true);
 		if(RPAppliedEvent.isTracked(event.getPlayer())) RPAppliedEvent.untrack(event.getPlayer(), null);
-		Game.stop(event.getPlayer(), true);
 	}
 }

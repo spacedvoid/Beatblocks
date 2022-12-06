@@ -23,7 +23,7 @@ public class Board {
 		this.type = type;
 		this.noteAnchor = noteAnchor;
 		this.face = face;
-		this.playerLocation = playerLocation;
+		this.boardLocation = playerLocation;
 	}
 
 	public final Board.Type type;
@@ -31,7 +31,7 @@ public class Board {
 	 * Anchor point of where notes should be spawned.
 	 */
 	public final Location noteAnchor;
-	public final Location playerLocation;
+	public final Location boardLocation;
 	/**
 	 * Direction of where notes move to.
 	 */
@@ -40,9 +40,9 @@ public class Board {
 	/**
 	 * The location of the returned Board points the base of where notes should be spawned.
 	 */
-	public static Board createSinglePlayer(Location location, BlockFace face) {
+	public static Board createSinglePlayer(Location playerLocation, BlockFace face) {
 		Type type = Type.SINGLEPLAYER;
-		Location boardLocation = location.clone();
+		Location boardLocation = playerLocation.clone().toBlockLocation();
 		Structure structure;
 		InputStream in = Beatblocks.getPlugin().getResource(type.path);
 		if(in == null) throw new BeatblocksException("Cannot find predefined resource " + type.path);
@@ -51,49 +51,46 @@ public class Board {
 		} catch (IOException e) {
 			throw new UncheckedThrowable(e);
 		}
-		boardLocation.setY(location.getBlockY() > location.getWorld().getHighestBlockYAt(location.getBlockX(), location.getBlockZ())?
-			(location.getWorld().getHighestBlockYAt(location.getBlockX(), location.getBlockZ()) + 1) : location.getBlockY()
+		boardLocation.setY(playerLocation.getBlockY() > playerLocation.getWorld().getHighestBlockYAt(playerLocation.getBlockX(), playerLocation.getBlockZ())?
+			(playerLocation.getWorld().getHighestBlockYAt(playerLocation.getBlockX(), playerLocation.getBlockZ()) + 1) : playerLocation.getBlockY()
 		);
 		StructureRotation rotation = StructureRotation.NONE;
 		switch(face) {
 			case NORTH -> {
-				boardLocation.setX(location.getX() - type.offset_right);
-				boardLocation.setZ(location.getZ() - type.offset_back);
+				boardLocation.setX(playerLocation.getX() - type.offset_right);
+				boardLocation.setZ(playerLocation.getZ() - type.offset_back);
 			}
 			case EAST -> {
 				rotation = StructureRotation.CLOCKWISE_90;
-				boardLocation.setX(location.getX() + type.offset_back);
-				boardLocation.setZ(location.getZ() - type.offset_right);
+				boardLocation.setX(playerLocation.getX() + type.offset_back);
+				boardLocation.setZ(playerLocation.getZ() - type.offset_right);
 			}
 			case SOUTH -> {
 				rotation = StructureRotation.CLOCKWISE_180;
-				boardLocation.setX(location.getX() + type.offset_right);
-				boardLocation.setZ(location.getZ() + type.offset_back);
+				boardLocation.setX(playerLocation.getX() + type.offset_right);
+				boardLocation.setZ(playerLocation.getZ() + type.offset_back);
 			}
 			case WEST -> {
 				rotation = StructureRotation.COUNTERCLOCKWISE_90;
-				boardLocation.setX(location.getX() - type.offset_back);
-				boardLocation.setZ(location.getZ() + type.offset_right);
+				boardLocation.setX(playerLocation.getX() - type.offset_back);
+				boardLocation.setZ(playerLocation.getZ() + type.offset_right);
 			}
 			default -> throw new IllegalArgumentException("Direction is not cardinal");
 		}
-		Location noteLocation = getNoteSpawnLocation(location, face);
+		Location noteLocation = getNoteSpawnLocation(playerLocation, face);
 		structure.place(boardLocation, false, rotation, Mirror.NONE, 0, 1.0f, new Random());
-		return new Board(type, noteLocation, face.getOppositeFace(), location);
+		return new Board(type, noteLocation, face.getOppositeFace(), playerLocation);
 	}
 
-	private static Location getNoteSpawnLocation(Location location, BlockFace direction) {
-		int dx = 13, dz = -4;
+	private static Location getNoteSpawnLocation(Location boardLocation, BlockFace direction) {
+		int dx = -4, dz = -14;
 		switch(direction) {
 			case NORTH: break;
 			case EAST: dx = dx ^ dz ^ (dz = dx); dx = -dx; break;
 			case SOUTH: dx = -dx; dz = -dz; break;
 			case WEST: dx = dx ^ dz ^ (dz = dx); dz = -dz; break;
 		}
-		Location result = location.clone();
-		result.setX(location.getX() + dx);
-		result.setZ(location.getZ() + dz);
-		return result;
+		return boardLocation.clone().add(dx, 1, dz);
 	}
 
 	/**
@@ -123,5 +120,10 @@ public class Board {
 			}
 			return null;
 		}
+	}
+
+	@Override
+	public String toString() {
+		return "Board{" + "type=" + type + ", noteAnchor=" + noteAnchor + ", playerLocation=" + boardLocation + ", face=" + face + '}';
 	}
 }

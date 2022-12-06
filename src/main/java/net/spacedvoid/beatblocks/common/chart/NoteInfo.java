@@ -8,4 +8,9 @@ public class NoteInfo {
 		this.timing = timing;
 		this.lane = lane;
 	}
+
+	@Override
+	public String toString() {
+		return "{" + "timing=" + timing + ", lane=" + lane + "}";
+	}
 }

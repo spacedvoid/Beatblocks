@@ -22,8 +22,8 @@ public enum Judgement {
 		.append(Component.text("F").color(TextColor.fromHexString("#7ED957")))
 		.append(Component.text("E").color(TextColor.fromHexString("#5271FF")))
 		.append(Component.text("C").color(TextColor.fromHexString("#8C52FF")))
-		.append(Component.text("T").color(TextColor.fromHexString("#7F00FF"))), 0),
-	GREAT(Component.text("GREAT").color(TextColor.fromHexString("#FFDE59")), 1),
+		.append(Component.text("T").color(TextColor.fromHexString("#EF6727"))), 0),
+	GREAT(Component.text("GREAT").color(TextColor.fromHexString("#E26329")), 1),
 	GOOD(Component.text("GOOD").color(TextColor.fromHexString("#FFDE59")), 2),
 	FAST(Component.text("FAST").color(TextColor.fromHexString("#0871DA")), GOOD, 3),
 	SLOW(Component.text("SLOW").color(TextColor.fromHexString("#27CB0D")), GOOD, 4),
@@ -53,11 +53,26 @@ public enum Judgement {
 		else return MISS;
 	}
 
-	public Judgement getParent() {
-		return this.parent == null? this : this.parent;
-	}
-
 	private static boolean isInRange(int compare, int with, int left, int right) {
 		return with - left <= compare && compare <= with + right;
+	}
+
+	public static JudgementCounter createCounter() {
+		return new JudgementCounter();
+	}
+
+	static class JudgementCounter {
+		private final int[] judgements = new int[]{0, 0, 0, 0, 0, 0};
+
+		private JudgementCounter() {}
+
+		public void increase(Judgement judgement) {
+			this.judgements[judgement.ordinal]++;
+			if(judgement.parent != null) judgements[judgement.parent.ordinal]++;
+		}
+
+		public int get(Judgement judgement) {
+			return this.judgements[judgement.ordinal];
+		}
 	}
 }

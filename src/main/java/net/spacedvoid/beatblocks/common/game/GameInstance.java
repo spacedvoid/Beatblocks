@@ -3,6 +3,7 @@ package net.spacedvoid.beatblocks.common.game;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.title.Title;
 import net.spacedvoid.beatblocks.common.Beatblocks;
 import net.spacedvoid.beatblocks.common.chart.Chart;
@@ -10,10 +11,7 @@ import net.spacedvoid.beatblocks.common.chart.NoteInfo;
 import net.spacedvoid.beatblocks.common.events.NotePressedEvent;
 import net.spacedvoid.beatblocks.common.exceptions.UncheckedThrowable;
 import net.spacedvoid.beatblocks.common.structures.Board;
-import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -29,9 +27,10 @@ public class GameInstance {
 	private final Player player;
 	public final Board board;
 	private int noteIndex = 0;
+	/** Includes finishing process. */
 	private boolean finished = false;
-	private final List<NoteEntity> notes = new ArrayList<>();   // In case of NoteEntities being GCed
-	private final int[] judgements = new int[]{0, 0, 0, 0, 0, 0};  // PERFECT, GREAT, GOOD, FAST, SLOW, MISS
+	private final List<NoteEntity> notes = Collections.synchronizedList(new ArrayList<>());
+	private final Judgement.JudgementCounter counter = Judgement.createCounter();
 
 	private final int START_DELAY = 40;
 
@@ -44,7 +43,7 @@ public class GameInstance {
 	}
 
 	public static GameInstance create(Player player, CompletableFuture<Chart> future, String chartName, Board board) {
-		Location playerLocation = board.playerLocation;
+		Location playerLocation = board.boardLocation;
 		playerLocation.setY(playerLocation.getBlockY() + 5);
 		switch(board.face) {
 			case NORTH -> playerLocation.setYaw(0);
@@ -53,6 +52,13 @@ public class GameInstance {
 			case WEST -> playerLocation.setYaw(270);
 		}
 		playerLocation.setPitch(45);
+		player.setGameMode(GameMode.CREATIVE);
+		player.setFlying(true);
+		player.teleport(playerLocation);
+		NotePressedEvent.include(player);
+		//TODO: Intro behavior
+		player.showTitle(Title.title(Component.text(""), Component.text("준비"), Title.Times.times(Duration.ZERO, Duration.ofMillis(1500), Duration.ofMillis(500))));
+		player.playSound(Sound.sound(Key.key("ui.button.click"), Sound.Source.RECORD, 1, 1), Sound.Emitter.self());
 		Chart chart;
 		if(!future.isDone()) player.sendMessage(Component.text("Force loading chart. This may cause server lag."));
 		try {
@@ -63,42 +69,41 @@ public class GameInstance {
 			throw new RuntimeException("Failed to load chart", e);
 		}
 		GameInstance instance = new GameInstance(chart, player, board);
-		player.setGameMode(GameMode.CREATIVE);
-		player.setFlying(true);
-		player.teleport(playerLocation);
-		NotePressedEvent.include(player);
-		//TODO: Intro behavior
-		player.showTitle(Title.title(Component.text(""), Component.text("준비"), Title.Times.times(Duration.ZERO, Duration.ofMillis(1500), Duration.ofMillis(500))));
-		player.playSound(Sound.sound(Key.key("ui.button.click"), Sound.Source.RECORD, 1, 1), Sound.Emitter.self());
 		Bukkit.getScheduler().runTaskLater(Beatblocks.getPlugin(), instance::spawnNotes, instance.START_DELAY);
 		Bukkit.getScheduler().runTaskLater(Beatblocks.getPlugin(),
-			() -> instance.start(player, Sound.sound(Key.key("beatblocks:" + chartName + "." + chart.getString(Chart.soundFile)), Sound.Source.RECORD, 1.0f, 1.0f)),
-			chart.getInteger(Chart.offset) + instance.START_DELAY
+			() -> player.playSound(Sound.sound(Key.key("beatblocks:" + chartName + "." + chart.getString(Chart.soundFile)), Sound.Source.RECORD, 1.0f, 1.0f), Sound.Emitter.self()),
+			chart.getInteger(Chart.offset) + instance.START_DELAY + (long)NoteEntity.TIME
 		);
+		Bukkit.getScheduler().runTaskLater(Beatblocks.getPlugin(), () ->
+			new BukkitRunnable() {
+				@Override
+				public void run() {
+					if(instance.hasEnded()) {
+						this.cancel();
+						return;
+					}
+					instance.currentTiming++;
+				}
+			}.runTaskTimer(Beatblocks.getPlugin(), 1, 1),
+			chart.getInteger(Chart.offset) + instance.START_DELAY);
 		return instance;
-	}
-
-	private void start(Player player, Sound sound) {
-		player.playSound(sound, Sound.Emitter.self());
-		new BukkitRunnable() {
-			@Override
-			public void run() {
-				if(hasEnded()) this.cancel();
-				currentTiming++;
-			}
-		}.runTaskTimer(Beatblocks.getPlugin(), 1, 1);
 	}
 
 	private void spawnNotes() {
 		new BukkitRunnable() {
 			@Override
 			public void run() {
+				if(finished) {
+					this.cancel();
+					return;
+				}
 				if(noteIndex >= chart.notes.size()) {
 					Game.stop(player, false);
 					this.cancel();
+					return;
 				}
 				Chart.ChartNote chartNote = chart.notes.get(noteIndex);
-				if(currentTiming == chartNote.info.timing - NoteEntity.TIME) {
+				if(currentTiming == chartNote.info.timing) {
 					addNoteEntity(new NoteEntity(board.noteAnchor, board.face, chartNote.info));
 					noteIndex++;
 				}
@@ -116,15 +121,38 @@ public class GameInstance {
 	}
 
 	void endGame(boolean force) {
-		if(!force) showResults();
-		NotePressedEvent.exclude(player);
 		finished = true;
+		NotePressedEvent.exclude(player);
+		if(force) {
+			synchronized (notes) {
+				while(notes.size() > 0) {
+					notes.get(0).delete();
+				}
+			}
+			player.stopSound(SoundCategory.RECORDS);
+		} else {
+			new BukkitRunnable() {
+				@Override
+				public void run() {
+					if(!notes.isEmpty()) return;
+					showResults();
+					this.cancel();
+				}
+			}.runTaskTimer(Beatblocks.getPlugin(), 0, 1);
+		}
 	}
 
 	private void showResults() {
-		StringJoiner joiner = new StringJoiner(" , ");
-		Arrays.stream(Judgement.values()).map(judgement -> judgement.text + " : " + judgements[judgement.ordinal]).forEach(joiner::add);
-		player.sendMessage(Component.text(joiner.toString()));
+		TextComponent.Builder builder = Component.text().append(Component.text("Result: \n"));
+		Judgement[] values = Judgement.values();
+		for(int i = 0; i < values.length; i++) {
+			Judgement judgement = values[i];
+			builder.append(judgement.text);
+			builder.append(Component.text(" : "));
+			builder.append(Component.text(counter.get(judgement)));
+			if(i != values.length - 1) builder.append(Component.text("\n"));
+		}
+		player.sendMessage(builder);
 	}
 
 	public boolean hasEnded() {
@@ -132,66 +160,57 @@ public class GameInstance {
 	}
 
 	private class NoteEntity {
-		private static final double LENGTH = 12;    // blocks
-		private static final double TIME = 15;      // ticks
+		private static final double LENGTH = 12;                        // blocks => 12
+		private static final double TIME = 15;                          // ticks => 15
 
-	    private static final double SPEED = LENGTH / TIME;    // block / tick -> 12 blocks for 15 ticks
-		private static final int TIME_LIMIT = (int)(13 / SPEED) + 1;
+	    private static final double SPEED = LENGTH / TIME;              // block / tick -> 12 blocks for 15 ticks => 0.8
+		private static final int TIME_LIMIT = (int)(13 / SPEED) + 1;    // 17
 
 	    private final Entity noteEntity;
-	    private final BlockFace direction;
-	    private final NoteInfo info;
+		private final NoteInfo info;
 
-		private boolean isDeleted = false;
+		private int age = 0;
 
-	    public NoteEntity(Location location, BlockFace direction, NoteInfo info) {
+		public NoteEntity(Location location, BlockFace direction, NoteInfo info) {
 		    if(!isCardinal(direction)) throw new IllegalArgumentException("Direction is not cardinal");
-	        this.direction = direction;
-	        this.info = info;
-			Location noteLocation = getNoteLocation(location, direction, info.lane);
+		    this.info = info;
+		    Location noteLocation = getNoteSpawnLocation(location, direction, this.info.lane);
 	        noteEntity = location.getWorld().spawnFallingBlock(noteLocation, getMaterial(info.lane).createBlockData());
 	        noteEntity.setGravity(false);
-	        noteEntity.setTicksLived(1);
-			new BukkitRunnable() {
-				@Override
-				public void run() {
-					if(isDeleted) this.cancel();
-					move();
-				}
-			}.runTaskTimer(Beatblocks.getPlugin(), 0, 1);
+			noteEntity.setVelocity(direction.getDirection().multiply(SPEED));
+		    new BukkitRunnable() {
+			    @Override
+			    public void run() {
+				    noteEntity.setVelocity(direction.getDirection().multiply(SPEED));
+				    if(age >= TIME_LIMIT) {
+						this.cancel();
+						process(Judgement.MISS);
+						return;
+				    }
+					age++;
+			    }
+		    }.runTaskTimer(Beatblocks.getPlugin(), 0, 1);
 	    }
 
-		private Location getNoteLocation(Location anchor, BlockFace direction, int lane) {
-			Location result = anchor.clone();
-			result.add(getLeft(direction).getDirection().multiply(lane));
-			return result;
+		private Location getNoteSpawnLocation(Location anchor, BlockFace direction, int lane) {
+			return anchor.clone().add(getLeft(direction).getDirection().multiply(lane));
 		}
 
-		private void move() {
-			if(noteEntity.getTicksLived() >= TIME_LIMIT) {
-				process(Judgement.MISS);
-				return;
-			}
-	        noteEntity.teleport(noteEntity.getLocation().add(direction.getDirection().multiply(SPEED)));
-	    }
-
-	    public void process() {
-		    process(Judgement.get(currentTiming, info.timing));
+		public void process() {
+		    process(Judgement.get(currentTiming, this.info.timing));
 	    }
 
 		private void process(Judgement judgement) {
 			player.sendActionBar(judgement.text);
-			judgements[judgement.ordinal]++;
-			if(judgement.getParent() != null) judgements[judgement.getParent().ordinal]++;
+			counter.increase(judgement);
 			delete();
 		}
 
 	    public void delete() {
 		    if(!notes.remove(this)) {
-			    Bukkit.getLogger().warning("Failed to remove note entity from container at lane: " + this.info.lane + ", timing: " + this.info.timing);
+			    Bukkit.getLogger().warning("Failed to remove note entity from container: " + this);
 		    }
-	        noteEntity.remove();    // Requires testing
-		    this.isDeleted = true;
+	        noteEntity.remove();
 	    }
 
 		private static Material getMaterial(int lane) {
@@ -220,5 +239,10 @@ public class GameInstance {
 	            default -> false;
 	        };
 	    }
+
+		@Override
+		public String toString() {
+			return "NoteEntity{" + "info=" + info + ",age=" + age + "}";
+		}
 	}
 }
