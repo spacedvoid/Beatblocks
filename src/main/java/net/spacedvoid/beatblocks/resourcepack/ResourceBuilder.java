@@ -45,11 +45,20 @@ public class ResourceBuilder {
 			CompletableFuture<Void> future = CompletableFuture.supplyAsync(() -> build(sender, includeUnloaded)).thenAcceptAsync(path -> {
 				if(players > 0) hostPack(sender, path);
 			});
-			buildTask(future);
+			new BukkitRunnable() {
+				@Override
+				public void run() {
+					if(future.isDone()) {
+						this.cancel();
+						lock = false;
+						future.join();
+					}
+				}
+			}.runTaskTimer(Beatblocks.getPlugin(), 0, 1);
 		} else throw new BeatblocksException("A build is currently on progress!", false);
 	}
 
-	private static Path build(Audience sender, boolean includedUnloaded) {
+	private static Path build(Audience sender, boolean includeUnloaded) {
 		File buildDir = new File(Beatblocks.getPlugin().getDataFolder().getAbsolutePath() + "/" + "resourcepack");
 		if(!buildDir.exists()) {
 			try {
@@ -100,7 +109,7 @@ public class ResourceBuilder {
 				throw new UncheckedThrowable("Failed to add default resources", e);
 			}
 		});
-		if(includedUnloaded) Charts.loadAll();
+		if(includeUnloaded) Charts.loadAll();
 		Map<String, SoundArray> soundMap = new HashMap<>();
 		try (Writer writer = new FileWriter(soundsJsonFile, StandardCharsets.UTF_8)) {
 			DefaultParser parser = new DefaultParser();
@@ -125,7 +134,7 @@ public class ResourceBuilder {
 					Files.createDirectories(destPath.getParent());
 					Files.copy(soundFile, destPath, StandardCopyOption.REPLACE_EXISTING);
 				} catch (IOException e) {
-					Bukkit.getLogger().warning("Failed to copy sound file to build dir:" + ExceptionUtil.getFullMessage(e));
+					Bukkit.getLogger().warning("Failed to copy sound file to build dir:" + ExceptionUtil.getFullMessage(e, true));
 					return;
 				}
 				soundMap.put(soundKey, new SoundArray(soundValue));
@@ -141,7 +150,7 @@ public class ResourceBuilder {
 	}
 
 	private static void hostPack(Audience sender, Path path) {
-		PackServer server = new PackServer(sender);
+		PackServer server = new PackServer(sender, path.getFileName().toString());
 		Bukkit.getScheduler().runTask(Beatblocks.getPlugin(), () -> sender.sendMessage(Component.text(ChatColor.GREEN + "Starting ngrok http tunnel")));
 		byte[] hash;
 		try (DigestInputStream digestStream = new DigestInputStream(new BufferedInputStream(new FileInputStream(path.toFile())), MessageDigest.getInstance("SHA-1"))) {
@@ -153,8 +162,6 @@ public class ResourceBuilder {
 		} catch (NoSuchAlgorithmException e) {
 			throw new RuntimeException(e.getMessage() + "\nIf you see this message, report to me.");
 		}
-		String hash1 = bytesToHex(hash);
-		Bukkit.getLogger().info(hash1);
 		String url = server.getPublicURL();
 		Bukkit.getScheduler().runTask(Beatblocks.getPlugin(), () -> {
 			Bukkit.getOnlinePlayers().forEach(player -> {
@@ -168,6 +175,8 @@ public class ResourceBuilder {
 	@SuppressWarnings("SpellCheckingInspection")
 	private static final char[] HEX_ARRAY = "0123456789abcdef".toCharArray();
 
+	// Left for debugging
+	@SuppressWarnings("unused")
 	public static String bytesToHex(byte[] bytes) {
 		char[] hexChars = new char[bytes.length * 2];
 		for (int j = 0; j < bytes.length; j++) {
@@ -195,19 +204,6 @@ public class ResourceBuilder {
 		} else {
 			throw new IllegalStateException("Called from IDE");
 		}
-	}
-
-	public static void buildTask(CompletableFuture<Void> future) {
-		new BukkitRunnable() {
-			@Override
-			public void run() {
-				if(future.isDone()) {
-					this.cancel();
-					lock = false;
-					future.join();
-				}
-			}
-		}.runTaskTimer(Beatblocks.getPlugin(), 0, 1);
 	}
 
 	// -- Classes for pack.mcmeta json creation --

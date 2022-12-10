@@ -13,6 +13,7 @@ import net.spacedvoid.beatblocks.common.Beatblocks;
 import net.spacedvoid.beatblocks.common.events.RPAppliedEvent;
 import net.spacedvoid.beatblocks.common.exceptions.UncheckedThrowable;
 import net.spacedvoid.beatblocks.util.BLogger;
+import net.spacedvoid.beatblocks.util.ExceptionUtil;
 import org.bukkit.Bukkit;
 
 import java.io.IOException;
@@ -25,24 +26,27 @@ import java.util.logging.Logger;
 
 public class PackServer {
 	private final BLogger logger = new BLogger("PackServer");
+	public final Path ROOT = Beatblocks.getPlugin().getDataFolder().toPath().resolve("packserver").toAbsolutePath();
 
 	private final CompletableFuture<Void> stages;
 	public NgrokClient ngrokClient;
 	public Tunnel tunnel;
-	public String publicUrl;
+	public String packName;
 
-	public PackServer(Audience sender) {
-		stages = CompletableFuture.runAsync(() -> {
+	public PackServer(Audience sender, String packName) {
+		this.packName = packName;
+		this.stages = CompletableFuture.runAsync(() -> {
 			Logger.getLogger(String.valueOf(NgrokClient.class)).setLevel(Level.OFF);
 			Logger.getLogger(String.valueOf(NgrokProcess.class)).setLevel(Level.OFF);
 			Path ngrokPath = Beatblocks.getPlugin().getDataFolder().toPath().toAbsolutePath().resolve("ngrok");
-			if(!Files.isRegularFile(ngrokPath.resolve("ngrok.exe"))) {
+			Path binary = ngrokPath.resolve("ngrok.exe");
+			if(!Files.isRegularFile(binary)) {
 				sender.sendMessage(Component.text("Downloading ngrok. This will take some time."));
 				logger.info("Installing ngrok...");
 			}
 			ngrokClient = new NgrokClient.Builder().withNgrokProcess(new NgrokProcess(
 				new JavaNgrokConfig.Builder()
-					.withNgrokPath(ngrokPath.resolve("ngrok.exe"))
+					.withNgrokPath(binary)
 					.withConfigPath(ngrokPath.resolve("ngrok.yml"))
 					.withRegion(Region.JP)
 					.build(),
@@ -51,15 +55,10 @@ public class PackServer {
 			try {
 				Files.delete(ngrokPath.resolve("ngrok.zip"));
 			} catch (IOException e) {
-				throw new UncheckedThrowable("Failed to delete downloaded ngrok zip file", e);
+				sender.sendMessage(Component.text("" + ExceptionUtil.getFullMessage(e, true)));
 			}
-			CreateTunnel createTunnel = new CreateTunnel.Builder().withAddr("file:///" + ResourceBuilder.OutPath.getParent()).withBindTls(false).build();
-			try {
-				tunnel = ngrokClient.connect(createTunnel);
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw e;
-			}
+			CreateTunnel createTunnel = new CreateTunnel.Builder().withAddr("file:///" + ROOT).withBindTls(false).build();
+			tunnel = ngrokClient.connect(createTunnel);
 		}).exceptionallyAsync(exception -> {
 			ngrokClient.kill();
 			logger.warn("Build failed - See exception below");
@@ -75,8 +74,7 @@ public class PackServer {
 		} catch (ExecutionException e) {
 			throw new UncheckedThrowable(e.getCause());
 		}
-		publicUrl = tunnel.getPublicUrl();
-		String packURL = publicUrl + "/" + ResourceBuilder.RPName;
+		String packURL = tunnel.getPublicUrl() + "/" + packName;
 		logger.info("Resource pack download URL: " + packURL);
 		return packURL;
 	}
@@ -84,7 +82,7 @@ public class PackServer {
 	public void close() {
 		Bukkit.getScheduler().runTaskAsynchronously(Beatblocks.getPlugin(), () -> {
 			RPAppliedEvent.awaitDownload();
-			logger.info("Server closing");
+			logger.info("Pack server closing");
 			ngrokClient.disconnect(tunnel.getPublicUrl());
 			ngrokClient.kill();
 		});

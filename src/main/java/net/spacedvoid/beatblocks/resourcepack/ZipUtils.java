@@ -15,7 +15,6 @@ public class ZipUtils {
 
 	/**
 	 * Creates a zip file from a folder. <code>sourceDir</code> will be the root directory.
-	 * <br><b>Critical bug</b>: some large files are modified, causing resource packs not being applied correctly.
 	 * @param sourceDir The source folder path
 	 * @param output The path of the result zip file.
 	 * @return The path of the zip file.

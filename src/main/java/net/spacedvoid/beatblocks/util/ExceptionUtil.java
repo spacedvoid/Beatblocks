@@ -10,16 +10,19 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 public class ExceptionUtil {
-	public static String getFullMessage(Throwable thrown) {
-		if(Beatblocks.getPlugin().getConfig().getBoolean("show-stacktrace", true)) {
-			return getExceptionInfo(thrown) + walk(thrown);
+	public static String getFullMessage(Throwable thrown, boolean... override) {
+		if(override == null) {
+			if(Beatblocks.getPlugin().getConfig().getBoolean("show-stacktrace", true)) {
+				return getExceptionInfo(thrown).append(walk(thrown)).toString();
+			}
 		}
-		return getExceptionInfo(thrown);
+		else if(override[0]) return getExceptionInfo(thrown).append(walk(thrown)).toString();
+		return getExceptionInfo(thrown).toString();
 	}
 
-	private static String walk(@Nullable Throwable thrown) {
-		if(thrown == null) return "";
+	private static StringBuilder walk(@Nullable Throwable thrown) {
 		StringBuilder builder = new StringBuilder();
+		if(thrown == null) return builder;
 		builder.append(getCauseMessage(thrown.getCause()));
 		builder.append(walk(thrown.getCause()));
 		for(Throwable suppress : thrown.getSuppressed()) {
@@ -27,13 +30,13 @@ public class ExceptionUtil {
 			builder.append(getSuppressedMessage(suppress));
 			builder.append(walk(suppress));
 		}
-		return builder.isEmpty()? "" : builder.insert(0, "\n").toString();
+		return builder.isEmpty()? builder : builder.insert(0, "\n");
 	}
 
-	private static String getExceptionInfo(Throwable thrown) {
+	private static StringBuilder getExceptionInfo(Throwable thrown) {
 		StringBuilder builder = new StringBuilder(thrown.getClass().getName());
 		if(thrown.getMessage() != null) builder.append(": ").append(thrown.getMessage());
-		return builder.toString();
+		return builder;
 	}
 
 	public static String getStackTrace(Throwable thrown) {
@@ -52,7 +55,7 @@ public class ExceptionUtil {
 			List<String> list;
 			if((list = stacktraceStream.toList()).size() != 0) return getExceptionInfo(thrown) + "\n  at " + String.join("\n  at ", list);
 		}
-		return getExceptionInfo(thrown);
+		return getExceptionInfo(thrown).toString();
 	}
 
 	public static String getCauseMessage(@Nullable Throwable thrown) {
