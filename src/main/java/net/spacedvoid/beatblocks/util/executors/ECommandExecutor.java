@@ -2,8 +2,8 @@ package net.spacedvoid.beatblocks.util.executors;
 
 import dev.jorel.commandapi.exceptions.WrapperCommandSyntaxException;
 import dev.jorel.commandapi.executors.CommandExecutor;
-import net.spacedvoid.beatblocks.common.exceptions.BeatblocksException;
-import net.spacedvoid.beatblocks.common.exceptions.UncheckedThrowable;
+import net.spacedvoid.beatblocks.exceptions.BeatblocksException;
+import net.spacedvoid.beatblocks.exceptions.UncheckedThrowable;
 import net.spacedvoid.beatblocks.util.ExceptionUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;

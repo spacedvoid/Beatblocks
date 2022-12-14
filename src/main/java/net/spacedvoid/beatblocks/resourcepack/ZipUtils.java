@@ -1,6 +1,6 @@
 package net.spacedvoid.beatblocks.resourcepack;
 
-import net.spacedvoid.beatblocks.common.exceptions.UncheckedThrowable;
+import net.spacedvoid.beatblocks.exceptions.UncheckedThrowable;
 import net.spacedvoid.beatblocks.util.BLogger;
 
 import java.io.*;

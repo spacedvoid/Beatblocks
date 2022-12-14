@@ -9,9 +9,9 @@ import com.github.alexdlaird.ngrok.protocol.Region;
 import com.github.alexdlaird.ngrok.protocol.Tunnel;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
-import net.spacedvoid.beatblocks.common.Beatblocks;
-import net.spacedvoid.beatblocks.common.events.RPAppliedEvent;
-import net.spacedvoid.beatblocks.common.exceptions.UncheckedThrowable;
+import net.spacedvoid.beatblocks.Beatblocks;
+import net.spacedvoid.beatblocks.events.RPAppliedEvent;
+import net.spacedvoid.beatblocks.exceptions.UncheckedThrowable;
 import net.spacedvoid.beatblocks.util.BLogger;
 import org.bukkit.Bukkit;
 

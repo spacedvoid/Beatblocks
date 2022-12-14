@@ -1,6 +1,6 @@
 package net.spacedvoid.beatblocks.util.consumer;
 
-import net.spacedvoid.beatblocks.common.exceptions.UncheckedThrowable;
+import net.spacedvoid.beatblocks.exceptions.UncheckedThrowable;
 
 import java.io.IOException;
 import java.util.function.Consumer;

@@ -1,6 +1,6 @@
 package net.spacedvoid.beatblocks.util;
 
-import net.spacedvoid.beatblocks.common.Beatblocks;
+import net.spacedvoid.beatblocks.Beatblocks;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
