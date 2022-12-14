@@ -20,6 +20,7 @@ import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -81,7 +82,7 @@ public class Commands {
 				}))
 			)
 			.then(new LiteralArgument("query")
-				.then(new StringArgument("chart")
+				.then(new StringArgument("chart").replaceSuggestions(ArgumentSuggestions.strings(Charts.CHARTS.keySet().toArray(new String[0])))
 					.executes(executor((sender, args) -> {
 						String chartName = (String)args[0];
 						if(Charts.CHARTS.get(chartName) != null) {
@@ -133,7 +134,7 @@ public class Commands {
 					);
 				else player.sendMessage(Component.text("No board found!"));
 			}))
-			.then(new StringArgument("boardType").replaceSuggestions(ArgumentSuggestions.strings(Charts.CHARTS.keySet().toArray(new String[0])))
+			.then(new StringArgument("boardType").replaceSuggestions(ArgumentSuggestions.strings(info -> Arrays.stream(Board.Type.values()).map(type -> type.id).toArray(String[]::new)))
 				.executesPlayer(playerExecutor((player, args) -> {
 					Board.Type type = Board.Type.of((String)args[0]);
 					if(type != null) {

@@ -19,11 +19,11 @@ import java.util.Random;
  * Structures should be saved facing north.
  */
 public class Board {
-	private Board(Board.Type type, Location noteAnchor, BlockFace face, Location playerLocation) {
+	private Board(Type type, BlockFace face, Location boardLocation) {
 		this.type = type;
-		this.noteAnchor = noteAnchor;
 		this.face = face;
-		this.boardLocation = playerLocation;
+		this.boardLocation = boardLocation;
+		this.noteAnchor = getNoteSpawnLocation(boardLocation, face.getOppositeFace());
 	}
 
 	public final Board.Type type;
@@ -42,7 +42,7 @@ public class Board {
 	 */
 	public static Board createSinglePlayer(Location playerLocation, BlockFace face) {
 		Type type = Type.SINGLEPLAYER;
-		Location boardLocation = playerLocation.clone().toBlockLocation();
+		Location boardLocation = playerLocation.clone().toCenterLocation();
 		Structure structure;
 		InputStream in = Beatblocks.getPlugin().getResource(type.path);
 		if(in == null) throw new BeatblocksException("Cannot find predefined resource " + type.path);
@@ -51,35 +51,35 @@ public class Board {
 		} catch (IOException e) {
 			throw new UncheckedThrowable(e);
 		}
-		boardLocation.setY(playerLocation.getBlockY() > playerLocation.getWorld().getHighestBlockYAt(playerLocation.getBlockX(), playerLocation.getBlockZ())?
-			(playerLocation.getWorld().getHighestBlockYAt(playerLocation.getBlockX(), playerLocation.getBlockZ()) + 1) : playerLocation.getBlockY()
+		boardLocation.setY(boardLocation.getBlockY() > boardLocation.getWorld().getHighestBlockYAt(boardLocation.getBlockX(), boardLocation.getBlockZ())?
+			(boardLocation.getWorld().getHighestBlockYAt(boardLocation.getBlockX(), boardLocation.getBlockZ()) + 1) : boardLocation.getBlockY()
 		);
 		StructureRotation rotation = StructureRotation.NONE;
+		Location structureLocation = boardLocation.clone();
 		switch(face) {
 			case NORTH -> {
-				boardLocation.setX(playerLocation.getX() - type.offset_right);
-				boardLocation.setZ(playerLocation.getZ() - type.offset_back);
+				structureLocation.setX(structureLocation.getX() - type.offset_right);
+				structureLocation.setZ(structureLocation.getZ() - type.offset_back);
 			}
 			case EAST -> {
 				rotation = StructureRotation.CLOCKWISE_90;
-				boardLocation.setX(playerLocation.getX() + type.offset_back);
-				boardLocation.setZ(playerLocation.getZ() - type.offset_right);
+				structureLocation.setX(structureLocation.getX() + type.offset_back);
+				structureLocation.setZ(structureLocation.getZ() - type.offset_right);
 			}
 			case SOUTH -> {
 				rotation = StructureRotation.CLOCKWISE_180;
-				boardLocation.setX(playerLocation.getX() + type.offset_right);
-				boardLocation.setZ(playerLocation.getZ() + type.offset_back);
+				structureLocation.setX(structureLocation.getX() + type.offset_right);
+				structureLocation.setZ(structureLocation.getZ() + type.offset_back);
 			}
 			case WEST -> {
 				rotation = StructureRotation.COUNTERCLOCKWISE_90;
-				boardLocation.setX(playerLocation.getX() - type.offset_back);
-				boardLocation.setZ(playerLocation.getZ() + type.offset_right);
+				structureLocation.setX(structureLocation.getX() - type.offset_back);
+				structureLocation.setZ(structureLocation.getZ() + type.offset_right);
 			}
 			default -> throw new IllegalArgumentException("Direction is not cardinal");
 		}
-		Location noteLocation = getNoteSpawnLocation(playerLocation, face);
-		structure.place(boardLocation, false, rotation, Mirror.NONE, 0, 1.0f, new Random());
-		return new Board(type, noteLocation, face.getOppositeFace(), playerLocation);
+		structure.place(structureLocation, false, rotation, Mirror.NONE, 0, 1.0f, new Random());
+		return new Board(type, face.getOppositeFace(), boardLocation);
 	}
 
 	private static Location getNoteSpawnLocation(Location boardLocation, BlockFace direction) {

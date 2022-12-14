@@ -7,5 +7,5 @@ debug: false
 # Allow players to see stack traces of exceptions when commands fail, etc. Setting this to false will still show the message of the exception.
 show-stacktrace: true
 
-# Port number for hosting resource packs built by Beatblocks. Make sure that the port has no conflicts.
-pack-port: 25555
+# Authtoken for ngrok. Go to https://dashboard.ngrok.com/get-started/your-authtoken and copy-paste your authtoken here.
+ngrok-authtoken:

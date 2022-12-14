@@ -43,7 +43,7 @@ public class GameInstance {
 	}
 
 	public static GameInstance create(Player player, CompletableFuture<Chart> future, String chartName, Board board) {
-		Location playerLocation = board.boardLocation;
+		Location playerLocation = board.boardLocation.clone();
 		playerLocation.setY(playerLocation.getBlockY() + 5);
 		switch(board.face) {
 			case NORTH -> playerLocation.setYaw(0);

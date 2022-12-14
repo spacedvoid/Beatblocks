@@ -13,7 +13,6 @@ import net.spacedvoid.beatblocks.common.Beatblocks;
 import net.spacedvoid.beatblocks.common.events.RPAppliedEvent;
 import net.spacedvoid.beatblocks.common.exceptions.UncheckedThrowable;
 import net.spacedvoid.beatblocks.util.BLogger;
-import net.spacedvoid.beatblocks.util.ExceptionUtil;
 import org.bukkit.Bukkit;
 
 import java.io.IOException;
@@ -26,16 +25,16 @@ import java.util.logging.Logger;
 
 public class PackServer {
 	private final BLogger logger = new BLogger("PackServer");
-	public final Path ROOT = Beatblocks.getPlugin().getDataFolder().toPath().resolve("packserver").toAbsolutePath();
+	public final Path ROOT = ResourceBuilder.OutPath;
 
-	private final CompletableFuture<Void> stages;
+	private final CompletableFuture<Void> future;
 	public NgrokClient ngrokClient;
 	public Tunnel tunnel;
-	public String packName;
+	public final String packName;
 
 	public PackServer(Audience sender, String packName) {
 		this.packName = packName;
-		this.stages = CompletableFuture.runAsync(() -> {
+		this.future = CompletableFuture.runAsync(() -> {
 			Logger.getLogger(String.valueOf(NgrokClient.class)).setLevel(Level.OFF);
 			Logger.getLogger(String.valueOf(NgrokProcess.class)).setLevel(Level.OFF);
 			Path ngrokPath = Beatblocks.getPlugin().getDataFolder().toPath().toAbsolutePath().resolve("ngrok");
@@ -49,13 +48,14 @@ public class PackServer {
 					.withNgrokPath(binary)
 					.withConfigPath(ngrokPath.resolve("ngrok.yml"))
 					.withRegion(Region.JP)
+					.withAuthToken(Beatblocks.getPlugin().getConfig().getString(Beatblocks.Config.NGROK_AUTHTOKEN))
 					.build(),
 				new NgrokInstaller())
 			).build();
 			try {
-				Files.delete(ngrokPath.resolve("ngrok.zip"));
+				Files.deleteIfExists(ngrokPath.resolve("ngrok.zip"));
 			} catch (IOException e) {
-				sender.sendMessage(Component.text("" + ExceptionUtil.getFullMessage(e, true)));
+				Bukkit.getLogger().log(Level.WARNING, "Failed to delete ngrok zip file", e);
 			}
 			CreateTunnel createTunnel = new CreateTunnel.Builder().withAddr("file:///" + ROOT).withBindTls(false).build();
 			tunnel = ngrokClient.connect(createTunnel);
@@ -66,13 +66,11 @@ public class PackServer {
 		});
 	}
 
-	public String getPublicURL() {
+	public String getPublicURL() throws ExecutionException {
 		try {
-			stages.get();
+			future.get();
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
-		} catch (ExecutionException e) {
-			throw new UncheckedThrowable(e.getCause());
 		}
 		String packURL = tunnel.getPublicUrl() + "/" + packName;
 		logger.info("Resource pack download URL: " + packURL);

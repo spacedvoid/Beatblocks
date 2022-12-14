@@ -10,13 +10,19 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 public class ExceptionUtil {
-	public static String getFullMessage(Throwable thrown, boolean... override) {
-		if(override == null) {
-			if(Beatblocks.getPlugin().getConfig().getBoolean("show-stacktrace", true)) {
-				return getExceptionInfo(thrown).append(walk(thrown)).toString();
-			}
+	public static String getFullMessage(Throwable thrown, boolean override) {
+		if(override) {
+			return getExceptionInfo(thrown).append(walk(thrown)).toString();
 		}
-		else if(override[0]) return getExceptionInfo(thrown).append(walk(thrown)).toString();
+		else {
+			return getFullMessage(thrown);
+		}
+	}
+
+	public static String getFullMessage(Throwable thrown) {
+		if(Beatblocks.getPlugin().getConfig().getBoolean(Beatblocks.Config.SHOW_STACKTRACE, true)) {
+			return getExceptionInfo(thrown).append(walk(thrown)).toString();
+		}
 		return getExceptionInfo(thrown).toString();
 	}
 

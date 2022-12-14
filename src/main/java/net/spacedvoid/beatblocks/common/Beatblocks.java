@@ -18,17 +18,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
-//TODO: Reconstruct exception handling, adapt UncheckedIOEs to UncheckedThrowables
+
 public class Beatblocks extends JavaPlugin {
     @Override
     public void onLoad() {
         CommandAPI.onLoad(new CommandAPIConfig().verboseOutput(true));
-        Commands.registerCommands();
     }
 
     @Override
     public void onEnable() {
         CommandAPI.onEnable(this);
+        Commands.registerCommands();
         Bukkit.getPluginManager().registerEvents(new NotePressedEvent(), this);
         Bukkit.getPluginManager().registerEvents(new PlayerJoinedEvent(), this);
         Bukkit.getPluginManager().registerEvents(new ServerLoadedEvent(), this);
@@ -41,7 +41,7 @@ public class Beatblocks extends JavaPlugin {
             }
         }
         manageConfig();
-        if(Beatblocks.getPlugin().getConfig().getBoolean("debug", false)) CommandFlag.setFlag(CommandFlag.DEBUG, true);
+        if(Beatblocks.getPlugin().getConfig().getBoolean(Config.DEBUG, false)) CommandFlag.setFlag(CommandFlag.DEBUG, true);
         try {
             Charts.listChartsAsync().get();
         } catch (InterruptedException e) {
@@ -57,19 +57,26 @@ public class Beatblocks extends JavaPlugin {
 
     private void manageConfig() {
         if(Files.notExists(Path.of(getDataFolder().getPath() + "/config.yml"))) {
-            this.saveDefaultConfig();
+            saveDefaultConfig();
         }
-        checkConfig(getConfig());
+        FileConfiguration config = getConfig();
+        if(!config.isBoolean(Config.DEBUG)) {
+            config.set(Config.DEBUG, false);
+            Bukkit.getLogger().info("Key \"" + Config.DEBUG + "\" at config.yml was set to default value \"false\"");
+        }
+        if(!config.isBoolean(Config.SHOW_STACKTRACE)) {
+            config.set(Config.SHOW_STACKTRACE, true);
+            Bukkit.getLogger().info("Key \"" + Config.SHOW_STACKTRACE + "\" at config.yml was set to default value \"true\"");
+        }
+        if(!config.isString(Config.NGROK_AUTHTOKEN)) {
+            Bukkit.getLogger().warning("To perform resource hosting, the ngrok authtoken must be set.");
+            Bukkit.getLogger().warning("Go to https://dashboard.ngrok.com/get-started/your-authtoken and copy your authtoken to the config.");
+        }
     }
 
-    private void checkConfig(FileConfiguration config) {
-        if(!config.isBoolean("debug")) {
-            config.set("debug", false);
-            Bukkit.getLogger().info("Key \"debug\" at config.yml was set to default value \"false\"");
-        }
-        if(!config.isBoolean("show-stacktrace")) {
-            config.set("show-stacktrace", true);
-            Bukkit.getLogger().info("Key \"show-stacktrace\" at config.yml was set to default value \"true\"");
-        }
+    public static class Config {
+        public static final String DEBUG = "debug";
+        public static final String SHOW_STACKTRACE = "show-stacktrace";
+        public static final String NGROK_AUTHTOKEN = "ngrok-authtoken";
     }
 }

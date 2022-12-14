@@ -29,6 +29,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 
 import static net.spacedvoid.beatblocks.util.FileUtils.createFile;
@@ -41,10 +42,8 @@ public class ResourceBuilder {
 	public static void buildAsync(Audience sender, boolean includeUnloaded) {
 		if(!lock) {
 			lock = true;
-			int players = Bukkit.getOnlinePlayers().size();
-			CompletableFuture<Void> future = CompletableFuture.supplyAsync(() -> build(sender, includeUnloaded)).thenAcceptAsync(path -> {
-				if(players > 0) hostPack(sender, path);
-			});
+			CompletableFuture<Path> future = CompletableFuture.supplyAsync(() -> build(sender, includeUnloaded));
+			if(hostable()) future.thenAcceptAsync(path -> hostPack(sender, path));
 			new BukkitRunnable() {
 				@Override
 				public void run() {
@@ -56,6 +55,10 @@ public class ResourceBuilder {
 				}
 			}.runTaskTimer(Beatblocks.getPlugin(), 0, 1);
 		} else throw new BeatblocksException("A build is currently on progress!", false);
+	}
+
+	private static boolean hostable() {
+		return Bukkit.getOnlinePlayers().size() > 0 && Beatblocks.getPlugin().getConfig().getString(Beatblocks.Config.NGROK_AUTHTOKEN) != null;
 	}
 
 	private static Path build(Audience sender, boolean includeUnloaded) {
@@ -162,7 +165,13 @@ public class ResourceBuilder {
 		} catch (NoSuchAlgorithmException e) {
 			throw new RuntimeException(e.getMessage() + "\nIf you see this message, report to me.");
 		}
-		String url = server.getPublicURL();
+		String url;
+		try {
+			url = server.getPublicURL();
+		} catch (ExecutionException e) {
+			sender.sendMessage(Component.text(ChatColor.RED + ExceptionUtil.getFullMessage(e.getCause())));
+			return;
+		}
 		Bukkit.getScheduler().runTask(Beatblocks.getPlugin(), () -> {
 			Bukkit.getOnlinePlayers().forEach(player -> {
 				player.setResourcePack(url, hash);
