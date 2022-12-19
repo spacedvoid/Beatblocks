@@ -3,6 +3,7 @@ package net.spacedvoid.beatblocks.resourcepack;
 import com.github.alexdlaird.ngrok.NgrokClient;
 import com.github.alexdlaird.ngrok.conf.JavaNgrokConfig;
 import com.github.alexdlaird.ngrok.installer.NgrokInstaller;
+import com.github.alexdlaird.ngrok.installer.NgrokVersion;
 import com.github.alexdlaird.ngrok.process.NgrokProcess;
 import com.github.alexdlaird.ngrok.protocol.CreateTunnel;
 import com.github.alexdlaird.ngrok.protocol.Region;
@@ -49,6 +50,7 @@ public class PackServer {
 					.withConfigPath(ngrokPath.resolve("ngrok.yml"))
 					.withRegion(Region.JP)
 					.withAuthToken(Beatblocks.getPlugin().getConfig().getString(Beatblocks.Config.NGROK_AUTHTOKEN))
+					.withNgrokVersion(NgrokVersion.V3)
 					.build(),
 				new NgrokInstaller())
 			).build();

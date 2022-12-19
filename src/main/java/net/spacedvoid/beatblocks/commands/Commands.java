@@ -2,7 +2,10 @@ package net.spacedvoid.beatblocks.commands;
 
 import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandTree;
-import dev.jorel.commandapi.arguments.*;
+import dev.jorel.commandapi.arguments.ArgumentSuggestions;
+import dev.jorel.commandapi.arguments.BooleanArgument;
+import dev.jorel.commandapi.arguments.PlayerArgument;
+import dev.jorel.commandapi.arguments.StringArgument;
 import net.kyori.adventure.text.Component;
 import net.spacedvoid.beatblocks.Beatblocks;
 import net.spacedvoid.beatblocks.chart.Chart;
@@ -24,6 +27,7 @@ import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import static dev.jorel.commandapi.arguments.LiteralArgument.literal;
 import static net.spacedvoid.beatblocks.util.executors.ECommandExecutor.executor;
 import static net.spacedvoid.beatblocks.util.executors.EPlayerCommandExecutor.playerExecutor;
 
@@ -36,7 +40,7 @@ public class Commands {
 				sender.sendMessage("Enabled Beatblocks: Singleplayer");
 		})).register();
 		new CommandTree("beatblocks")
-			.then(new LiteralArgument("singleplayer").withRequirement(CommandFlag.SINGLEPLAYER::isEnabled)
+			.then(literal("singleplayer").withRequirement(CommandFlag.SINGLEPLAYER::isEnabled)
 				.then(new StringArgument("chart").replaceSuggestions(ArgumentSuggestions.strings(Charts.CHARTS.keySet().toArray(new String[0])))
 					.executesPlayer(playerExecutor((player, args) -> Game.startGame(player, (String)args[0])))
 					.then(new PlayerArgument("player")
@@ -48,7 +52,7 @@ public class Commands {
 					)
 				)
 			)
-			.then(new LiteralArgument("stop")
+			.then(literal("stop")
 				.executesPlayer(playerExecutor((player, args) -> {
 					if(Game.activeGames.containsKey(player.getUniqueId())) {
 						Game.stop(player, true);
@@ -69,7 +73,7 @@ public class Commands {
 			)
 			.register();
 		new CommandTree("charts")
-			.then(new LiteralArgument("list")
+			.then(literal("list")
 				.executes(executor((sender, args) -> {
 					try {
 						Charts.listChartsAsync().get();
@@ -81,7 +85,7 @@ public class Commands {
 					sender.sendMessage(ChartDisplayer.getListDisplay());
 				}))
 			)
-			.then(new LiteralArgument("query")
+			.then(literal("query")
 				.then(new StringArgument("chart").replaceSuggestions(ArgumentSuggestions.strings(Charts.CHARTS.keySet().toArray(new String[0])))
 					.executes(executor((sender, args) -> {
 						String chartName = (String)args[0];
@@ -107,7 +111,7 @@ public class Commands {
 					}))
 				)
 			)
-			.then(new LiteralArgument("reload")
+			.then(literal("reload")
 				.executes(executor((sender, args) -> {
 					sender.sendMessage(Component.text("Reloading chart files."));
 					Charts.clearChartList();
