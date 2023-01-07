@@ -30,6 +30,10 @@ import java.util.stream.Stream;
  */
 
 public class Chart {
+    public final String chartName;
+    public Chart(String chartName) {
+        this.chartName = chartName;
+    }
     public static final Map<String, ChartValue<?>> chartValues = new HashMap<>();
     public static final Map<ChartKey<?>, String> keyIDs = new HashMap<>();
 

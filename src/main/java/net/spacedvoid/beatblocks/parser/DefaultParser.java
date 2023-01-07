@@ -42,7 +42,7 @@ public class DefaultParser implements IParser {
     public Chart readChart(Path chartPath) throws ChartFileException {
         File chartFile = chartPath.toFile();
         if(!chartFile.exists()) throw new ChartFileException("The chart file could not be found, or is not listed");
-        Chart chart = new Chart();
+        Chart chart = new Chart(chartPath.getFileName().toString());
         Charts.ChartStatus status = Charts.ChartStatus.LOADED;
         try (FileChannel channel = FileChannel.open(chartFile.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE);
              Scanner chartScanner = new Scanner(channel, StandardCharsets.UTF_8);

@@ -2,10 +2,7 @@ package net.spacedvoid.beatblocks.commands;
 
 import dev.jorel.commandapi.CommandAPI;
 import dev.jorel.commandapi.CommandTree;
-import dev.jorel.commandapi.arguments.ArgumentSuggestions;
-import dev.jorel.commandapi.arguments.BooleanArgument;
-import dev.jorel.commandapi.arguments.PlayerArgument;
-import dev.jorel.commandapi.arguments.StringArgument;
+import dev.jorel.commandapi.arguments.*;
 import net.kyori.adventure.text.Component;
 import net.spacedvoid.beatblocks.Beatblocks;
 import net.spacedvoid.beatblocks.chart.Chart;
@@ -24,6 +21,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -32,6 +31,7 @@ import static net.spacedvoid.beatblocks.util.executors.ECommandExecutor.executor
 import static net.spacedvoid.beatblocks.util.executors.EPlayerCommandExecutor.playerExecutor;
 
 public class Commands {
+	@SuppressWarnings("unchecked")
 	public static void registerCommands() {
 		new CommandTree("singleplayer").withRequirement(CommandFlag.SINGLEPLAYER::isDisabled)
 			.executes(executor((sender, args) -> {
@@ -42,19 +42,36 @@ public class Commands {
 		new CommandTree("beatblocks")
 			.then(literal("singleplayer").withRequirement(CommandFlag.SINGLEPLAYER::isEnabled)
 				.then(new StringArgument("chart").replaceSuggestions(ArgumentSuggestions.strings(Charts.CHARTS.keySet().toArray(new String[0])))
-					.executesPlayer(playerExecutor((player, args) -> Game.startGame(player, (String)args[0])))
+					.executesPlayer(playerExecutor((player, args) -> Game.startGame((String)args[0], player)))
 					.then(new PlayerArgument("player")
 						.executes(executor((sender, args) -> {
 							Player player = (Player)args[1];
 							if(!player.isOnline()) throw new CommandFailedException("Player is not online!");
-							Game.startGame(player, (String)args[0]);
+							Game.startGame((String)args[0], player);
 						}))
+					)
+				)
+			)
+			.then(literal("multiplayer")
+				.then(new StringArgument("chart")
+					.then(new ListArgumentBuilder<Player>("players")
+						.withList((Collection<Player>)Bukkit.getOnlinePlayers()).withMapper(Player::getName).buildGreedy()
+							.executesPlayer(playerExecutor((player, args) -> {
+								String chartName = (String)args[0];
+								List<Player> players = (List<Player>)args[1];
+								if(players.size() > 3)
+										throw new CommandFailedException("Players are limited to 4 including yourself; provided " + players.size());
+								else if(players.size() == 0)
+									throw new CommandFailedException("No players are listed!");
+								players.add(0, player);
+								Game.startGame(chartName, players.toArray(Player[]::new));
+							}))
 					)
 				)
 			)
 			.then(literal("stop")
 				.executesPlayer(playerExecutor((player, args) -> {
-					if(Game.activeGames.containsKey(player.getUniqueId())) {
+					if(Game.get(player) != null) {
 						Game.stop(player, true);
 						player.sendMessage(Component.text("Stopped game"));
 					}
@@ -63,7 +80,7 @@ public class Commands {
 				.then(new PlayerArgument("player")
 					.executes(executor((sender, args) -> {
 						Player player = (Player)args[0];
-						if(Game.activeGames.containsKey(player.getUniqueId())) {
+						if(Game.get(player) != null) {
 							Game.stop(player, true);
 							player.sendMessage(Component.text("Stopped game of player " + player.getName()));
 						}
@@ -132,7 +149,7 @@ public class Commands {
 		new CommandTree("board")
 			.executesPlayer(playerExecutor((player, args) -> {
 				Board found;
-				if((found = Game.boards.get(player.getUniqueId())) != null)
+				if((found = Game.singleBoards.get(player.getUniqueId())) != null)
 					player.sendMessage(
 						Component.text("Board found at x: " + found.boardLocation.getBlockX() + ", y: " + found.boardLocation.getBlockY() + ", z: " + found.boardLocation.getBlockZ())
 					);
@@ -144,7 +161,7 @@ public class Commands {
 					if(type != null) {
 						Board old;
 						if((old = Game.registerBoard(player, type)) != null) {
-							player.sendMessage("Previous board at [" + old.noteAnchor.getBlockX() + "," + old.noteAnchor.getBlockY() + "," + old.noteAnchor.getBlockZ() + "] was unregistered");
+							player.sendMessage("Previous board at [" + old.boardLocation.getBlockX() + "," + old.boardLocation.getBlockY() + "," + old.boardLocation.getBlockZ() + "] was unregistered");
 						}
 					}
 					else throw new CommandFailedException("No such board!");

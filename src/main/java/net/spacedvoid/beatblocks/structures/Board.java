@@ -12,7 +12,9 @@ import org.bukkit.structure.Structure;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -21,19 +23,20 @@ import java.util.Random;
 public class Board {
 	private Board(Type type, BlockFace face, Location boardLocation) {
 		this.type = type;
-		this.face = face;
 		this.boardLocation = boardLocation;
-		this.noteAnchor = getNoteSpawnLocation(boardLocation, face.getOppositeFace());
+		this.noteAnchors = this.type == Type.SINGLEPLAYER?
+				getNoteSpawnLocation(this.boardLocation, face) : getNoteSpawnLocation(this.boardLocation);
+		this.face = face.getOppositeFace();
 	}
 
 	public final Board.Type type;
 	/**
 	 * Anchor point of where notes should be spawned.
 	 */
-	public final Location noteAnchor;
+	public final List<NoteAnchor> noteAnchors;
 	public final Location boardLocation;
 	/**
-	 * Direction of where notes move to.
+	 * Player direction when this board was placed.
 	 */
 	public final BlockFace face;
 
@@ -79,18 +82,7 @@ public class Board {
 			default -> throw new IllegalArgumentException("Direction is not cardinal");
 		}
 		structure.place(structureLocation, false, rotation, Mirror.NONE, 0, 1.0f, new Random());
-		return new Board(type, face.getOppositeFace(), boardLocation);
-	}
-
-	private static Location getNoteSpawnLocation(Location boardLocation, BlockFace direction) {
-		int dx = -4, dz = -14;
-		switch(direction) {
-			case NORTH: break;
-			case EAST: dx = dx ^ dz ^ (dz = dx); dx = -dx; break;
-			case SOUTH: dx = -dx; dz = -dz; break;
-			case WEST: dx = dx ^ dz ^ (dz = dx); dz = -dz; break;
-		}
-		return boardLocation.clone().add(dx, 1, dz);
+		return new Board(type, face, boardLocation);
 	}
 
 	/**
@@ -98,6 +90,29 @@ public class Board {
 	 */
 	public static Board createMultiPlayer(Location location) {
 		throw new UnsupportedOperationException("Multiplayer not supported yet :(");
+	}
+	
+	/**
+	 * For singleplayer.
+	 */
+	private static List<NoteAnchor> getNoteSpawnLocation(Location boardLocation, BlockFace direction) {
+		int dx = -4, dz = -14;
+		switch(direction) {
+			case NORTH: break;
+			case EAST: dx = dx ^ dz ^ (dz = dx); dx = -dx; break;
+			case SOUTH: dx = -dx; dz = -dz; break;
+			case WEST: dx = dx ^ dz ^ (dz = dx); dz = -dz; break;
+		}
+		return List.of(new NoteAnchor(boardLocation.clone().add(dx, 1, dz), direction.getOppositeFace()));
+	}
+	
+	/**
+	 * For multiplayer.
+	 */
+	private static List<NoteAnchor> getNoteSpawnLocation(Location boardLocation) {
+		ArrayList<NoteAnchor> list = new ArrayList<>(4);
+		// TODO: Get anchor position in-game
+		return list;
 	}
 
 	public enum Type {
@@ -124,6 +139,8 @@ public class Board {
 
 	@Override
 	public String toString() {
-		return "Board{" + "type=" + type + ", noteAnchor=" + noteAnchor + ", playerLocation=" + boardLocation + ", face=" + face + '}';
+		return "Board{" + "type=" + type + ", noteAnchor=" + noteAnchors + ", playerLocation=" + boardLocation + "}";
 	}
+	
+	public record NoteAnchor(Location location, BlockFace direction) {}
 }
