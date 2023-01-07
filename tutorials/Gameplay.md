@@ -30,7 +30,7 @@ Beatblocks는 총 8개의 라인을 사용하며, 채보에 따라 2~8개의 키
 이때 사용하는 키보드 자판은 숫자패드가 아닌, 핫바의 슬롯을 선택하는 숫자키여야 합니다.
 
 ## 판정
-Beatblocks의 [판정](../src/main/java/net/spacedvoid/beatblocks/common/game/Judgement.java)은 4단계로 이루어져 있습니다.
+Beatblocks의 [판정](../src/main/java/net/spacedvoid/beatblocks/game/Judgement.java)은 4단계로 이루어져 있습니다.
 판정은 위에서부터 아래의 순서대로 우선하며, 판정의 단위는 tick( = 50ms)입니다.
 1. PERFECT **:** 노트의 타이밍과 같은 틱에 처리했을 경우
 2. GREAT **:** 노트의 타이밍에서 ±1틱 내에 처리했을 경우
