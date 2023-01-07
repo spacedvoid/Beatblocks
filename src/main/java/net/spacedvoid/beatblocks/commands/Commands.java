@@ -148,23 +148,20 @@ public class Commands {
 			).register();
 		new CommandTree("board")
 			.executesPlayer(playerExecutor((player, args) -> {
-				Board found;
+				Board.TypedBoard found;
 				if((found = Game.singleBoards.get(player.getUniqueId())) != null)
 					player.sendMessage(
-						Component.text("Board found at x: " + found.boardLocation.getBlockX() + ", y: " + found.boardLocation.getBlockY() + ", z: " + found.boardLocation.getBlockZ())
+						Component.text("Board found at x: " + found.getBoardLocation().getBlockX() + ", y: " + found.getBoardLocation().getBlockY() + ", z: " + found.getBoardLocation().getBlockZ())
 					);
 				else player.sendMessage(Component.text("No board found!"));
 			}))
 			.then(new StringArgument("boardType").replaceSuggestions(ArgumentSuggestions.strings(info -> Arrays.stream(Board.Type.values()).map(type -> type.id).toArray(String[]::new)))
 				.executesPlayer(playerExecutor((player, args) -> {
-					Board.Type type = Board.Type.of((String)args[0]);
-					if(type != null) {
-						Board old;
-						if((old = Game.registerBoard(player, type)) != null) {
-							player.sendMessage("Previous board at [" + old.boardLocation.getBlockX() + "," + old.boardLocation.getBlockY() + "," + old.boardLocation.getBlockZ() + "] was unregistered");
-						}
+					String type = (String)args[0];
+					Board.TypedBoard old;
+					if((old = Game.registerBoard(player, type)) != null) {
+						player.sendMessage("Previous board at [" + old.getBoardLocation().getBlockX() + "," + old.getBoardLocation().getBlockY() + "," + old.getBoardLocation().getBlockZ() + "] was unregistered");
 					}
-					else throw new CommandFailedException("No such board!");
 				}))
 			).register();
 		new CommandTree("parserversion").withRequirement(CommandFlag.DEBUG::isEnabled)

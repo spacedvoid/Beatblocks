@@ -28,22 +28,26 @@ import java.util.concurrent.ExecutionException;
 
 public class MultiplayerGame implements GameInstance {
 	private final Chart chart;
-	private final Board board;
-	private final LimitedMap<Player, SingleplayerGame> slots = new LimitedMap<>(5);    // 0: North, 1: East, 2: South, 3: West
+	private final Board.TypedBoard board;
+	private final LimitedMap<Player, SingleplayerGame> slots = new LimitedMap<>(4);    // 0: North, 1: East, 2: South, 3: West
 	
 	private int noteIndex = 0;
 	private int currentTiming = 0;
 	private boolean ended = false;
 	private final List<NoteEntity> notes = Collections.synchronizedList(new ArrayList<>());
 	private final Judgement.JudgementCounter counter = Judgement.createCounter();
+
+	private MultiplayerGame(Chart chart, Board.TypedBoard board, Player... players) {
+		this.chart = chart;
+		this.board = board;
+	}
 	
-	public static MultiplayerGame create(CompletableFuture<Chart> future, Board board, Player... players) {
-		if(board.type != Board.Type.MULTIPLAYER) throw new IllegalArgumentException("Board not multiplayer");
+	public static MultiplayerGame create(CompletableFuture<Chart> future, Board.TypedBoard board, Player... players) {
+		if(board.getType() != Board.Type.MULTIPLAYER) throw new IllegalArgumentException("Board not multiplayer");
 		checkCreatable(players);
-		Location playerLocationAnchor = board.boardLocation.clone().toCenterLocation().add(0, 5, 0);
 		// TODO: Get player locations
 		for(int i = 0; i < players.length; i++) {
-			Location playerLocation = playerLocationAnchor.clone();
+			Location playerLocation = board.getViewable().get(i).getBoardLocation().clone();
 			int dx = 0, dz = 0;
 			switch(i) {
 				case 0 -> {
@@ -99,12 +103,7 @@ public class MultiplayerGame implements GameInstance {
 	}
 	
 	private void spawnNotes() {
-	
-	}
-	
-	private MultiplayerGame(Chart chart, Board board, Player... players) {
-		this.chart = chart;
-		this.board = board;
+		// TODO
 	}
 	
 	@Override
@@ -114,12 +113,12 @@ public class MultiplayerGame implements GameInstance {
 	
 	@Override
 	public void processNote(Player player, int lane) {
-	
+		// TODO
 	}
 	
 	@Override
 	public void endGame(boolean force) {
-	
+		// TODO
 	}
 	
 	@Override
@@ -143,7 +142,7 @@ public class MultiplayerGame implements GameInstance {
 	}
 	
 	@Override
-	public Board getBoard() {
+	public Board.TypedBoard getBoard() {
 		return board;
 	}
 	

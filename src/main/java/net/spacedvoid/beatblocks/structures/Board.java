@@ -10,46 +10,161 @@ import org.bukkit.block.structure.Mirror;
 import org.bukkit.block.structure.StructureRotation;
 import org.bukkit.structure.Structure;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
+
+import static org.bukkit.block.BlockFace.*;
 
 /**
  * Structures should be saved facing north.
  */
 public class Board {
-	private Board(Type type, BlockFace face, Location boardLocation) {
-		this.type = type;
-		this.boardLocation = boardLocation;
-		this.noteAnchors = this.type == Type.SINGLEPLAYER?
-				getNoteSpawnLocation(this.boardLocation, face) : getNoteSpawnLocation(this.boardLocation);
-		this.face = face.getOppositeFace();
+	public abstract static class TypedBoard {
+		public abstract List<ViewableBoard> getViewable();
+		/**
+		 * @return The NoteBase of this board, or <code>null</code> if this board is for multiplayer
+		 */
+		@Nullable
+		public abstract NoteBase getNoteBase();
+		/**
+		 * @return The location of this board
+		 */
+		public abstract Location getBoardLocation();
+		/**
+		 * @return The direction of the player when this board was created, or <code>null</code> if this board is for multiplayer
+		 */
+		@Nullable
+		abstract BlockFace getFace();
+		public abstract Board.Type getType();
 	}
 
-	public final Board.Type type;
-	/**
-	 * Anchor point of where notes should be spawned.
-	 */
-	public final List<NoteAnchor> noteAnchors;
-	public final Location boardLocation;
-	/**
-	 * Player direction when this board was placed.
-	 */
-	public final BlockFace face;
+	public static class ViewableBoard {
+		private final TypedBoard board;
+
+		static ViewableBoard of(TypedBoard board) {
+			return new ViewableBoard(board);
+		}
+
+		private ViewableBoard(TypedBoard board) {
+			this.board = board;
+		}
+
+		public NoteBase getNoteBase() {
+			return board.getNoteBase();
+		}
+
+		/**
+		 * @return The direction of the player when this board was created, or <code>null</code> if this board is for multiplayer
+		 */
+		public BlockFace getFace() {
+			return board.getFace();
+		}
+
+		public Location getBoardLocation() {
+			return board.getBoardLocation();
+		}
+	}
+
+	static class SingleplayerBoard extends TypedBoard {
+		/**
+		 * Anchor point of where notes should be spawned.
+		 */
+		public final NoteBase noteBase;
+		public final Location boardLocation;
+		/**
+		 * Player direction when this board was placed.
+		 */
+		public final BlockFace face;
+
+		SingleplayerBoard(NoteBase base, Location boardLocation, BlockFace face) {
+			this.noteBase = base;
+			this.boardLocation = boardLocation;
+			this.face = face;
+		}
+
+		@Override
+		public List<ViewableBoard> getViewable() {
+			return List.of(ViewableBoard.of(this));
+		}
+
+		@Override
+		public NoteBase getNoteBase() {
+			return noteBase;
+		}
+
+		@Override
+		public Location getBoardLocation() {
+			return boardLocation;
+		}
+
+		@Override
+		@Nullable
+		BlockFace getFace() {
+			return face;
+		}
+
+		@Override
+		public Type getType() {
+			return Type.SINGLEPLAYER;
+		}
+	}
+
+	static class MultiplayerBoard extends TypedBoard {
+		private final List<SingleplayerBoard> boards = Arrays.asList(new SingleplayerBoard[4]);
+		private final Location boardLocation;
+
+		MultiplayerBoard(List<SingleplayerBoard> boards, Location boardLocation) {
+			if(boards.size() != 4) throw new IllegalArgumentException("Board count does not match (expected 4, found " + boards.size() + ")");
+			this.boardLocation = boardLocation;
+		}
+
+		@Override
+		public List<ViewableBoard> getViewable() {
+			return boards.stream().map(ViewableBoard::new).toList();
+		}
+
+		@Override
+		public NoteBase getNoteBase() {
+			return null;
+		}
+
+		@Override
+		public Location getBoardLocation() {
+			return boardLocation;
+		}
+
+		@org.jetbrains.annotations.Nullable
+		@Override
+		BlockFace getFace() {
+			return null;
+		}
+
+		@Override
+		public Type getType() {
+			return Type.MULTIPLAYER;
+		}
+	}
+
+	public static TypedBoard create(String type, Location playerLocation, BlockFace face) {
+		Board.Type boardType = Type.of(type);
+		if(boardType == null) throw new IllegalArgumentException("No such board \"" + type + "\"");
+		return switch(boardType) {
+			case SINGLEPLAYER -> createSinglePlayer(playerLocation, face);
+			case MULTIPLAYER -> createMultiPlayer(playerLocation);
+		};
+	}
 
 	/**
 	 * The location of the returned Board points the base of where notes should be spawned.
 	 */
-	public static Board createSinglePlayer(Location playerLocation, BlockFace face) {
+	private static TypedBoard createSinglePlayer(Location playerLocation, BlockFace face) {
 		Type type = Type.SINGLEPLAYER;
 		Location boardLocation = playerLocation.clone().toCenterLocation();
 		Structure structure;
-		InputStream in = Beatblocks.getPlugin().getResource(type.path);
-		if(in == null) throw new BeatblocksException("Cannot find predefined resource " + type.path);
-		try {
+		try (InputStream in = Beatblocks.getPlugin().getResource(type.path)) {
+			if(in == null) throw new BeatblocksException("Cannot find predefined resource " + type.path);
 			structure = Bukkit.getStructureManager().loadStructure(in);
 		} catch (IOException e) {
 			throw new UncheckedThrowable(e);
@@ -82,20 +197,29 @@ public class Board {
 			default -> throw new IllegalArgumentException("Direction is not cardinal");
 		}
 		structure.place(structureLocation, false, rotation, Mirror.NONE, 0, 1.0f, new Random());
-		return new Board(type, face, boardLocation);
+		return new SingleplayerBoard(getNoteSpawnLocation(boardLocation, face), boardLocation, face);
 	}
 
 	/**
 	 * The list of locations of the returned board are the base points of where the notes should spawn.
 	 */
-	public static Board createMultiPlayer(Location location) {
-		throw new UnsupportedOperationException("Multiplayer not supported yet :(");
-	}
+	private static TypedBoard createMultiPlayer(Location playerLocation) {
+		List<SingleplayerBoard> boards = new ArrayList<>(4);
+		Location centerLocation = playerLocation.clone().toCenterLocation();
+		List<AbstractMap.SimpleEntry<Location, BlockFace>> boardLocations = List.of(
+			new AbstractMap.SimpleEntry<>(centerLocation.clone().add(20, 0, 0), WEST),
+			new AbstractMap.SimpleEntry<>(centerLocation.clone().add(-20, 0, 0), EAST),
+			new AbstractMap.SimpleEntry<>(centerLocation.clone().add(0, 0, 20), NORTH),
+			new AbstractMap.SimpleEntry<>(centerLocation.clone().add(0, 0, -20), SOUTH)
+		);
+		boards.addAll(boardLocations.stream().map(entry -> (SingleplayerBoard)createSinglePlayer(entry.getKey(), entry.getValue())).toList());
+		return new MultiplayerBoard(boards, centerLocation);
+	}//+-20
 	
 	/**
 	 * For singleplayer.
 	 */
-	private static List<NoteAnchor> getNoteSpawnLocation(Location boardLocation, BlockFace direction) {
+	private static NoteBase getNoteSpawnLocation(Location boardLocation, BlockFace direction) {
 		int dx = -4, dz = -14;
 		switch(direction) {
 			case NORTH: break;
@@ -103,16 +227,7 @@ public class Board {
 			case SOUTH: dx = -dx; dz = -dz; break;
 			case WEST: dx = dx ^ dz ^ (dz = dx); dz = -dz; break;
 		}
-		return List.of(new NoteAnchor(boardLocation.clone().add(dx, 1, dz), direction.getOppositeFace()));
-	}
-	
-	/**
-	 * For multiplayer.
-	 */
-	private static List<NoteAnchor> getNoteSpawnLocation(Location boardLocation) {
-		ArrayList<NoteAnchor> list = new ArrayList<>(4);
-		// TODO: Get anchor position in-game
-		return list;
+		return new NoteBase(boardLocation.clone().add(dx, 1, dz), direction.getOppositeFace());
 	}
 
 	public enum Type {
@@ -137,10 +252,9 @@ public class Board {
 		}
 	}
 
-	@Override
-	public String toString() {
-		return "Board{" + "type=" + type + ", noteAnchor=" + noteAnchors + ", playerLocation=" + boardLocation + "}";
-	}
-	
-	public record NoteAnchor(Location location, BlockFace direction) {}
+	/**
+	 * @param location Location of this base
+	 * @param direction BlockFace of where the note should move
+	 */
+	public record NoteBase(Location location, BlockFace direction) {}
 }

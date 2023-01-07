@@ -10,7 +10,10 @@ import net.spacedvoid.beatblocks.chart.Chart;
 import net.spacedvoid.beatblocks.events.NotePressedEvent;
 import net.spacedvoid.beatblocks.exceptions.UncheckedThrowable;
 import net.spacedvoid.beatblocks.structures.Board;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
+import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -20,9 +23,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 public class SingleplayerGame implements GameInstance {
-	public final Chart chart;
+	private final Chart chart;
 	private final Player player;
-	public final Board board;
+	private final Board.TypedBoard board;
 	private int noteIndex = 0;
 	/** Includes finishing process. */
 	private boolean ended = false;
@@ -31,17 +34,18 @@ public class SingleplayerGame implements GameInstance {
 	
 	private int currentTiming = 0;
 
-	private SingleplayerGame(Chart chart, Player player, Board board) {
+	private SingleplayerGame(Chart chart, Player player, Board.TypedBoard board) {
 		this.chart = chart;
 		this.player = player;
 		this.board = board;
 	}
 	
-	public static SingleplayerGame create(CompletableFuture<Chart> future, Board board, Player player) {
-		if(board.type != Board.Type.SINGLEPLAYER) throw new IllegalArgumentException("Board not singleplayer");
-		Location playerLocation = board.boardLocation.clone();
+	public static SingleplayerGame create(CompletableFuture<Chart> future, Board.TypedBoard board, Player player) {
+		if(board.getType() != Board.Type.SINGLEPLAYER) throw new IllegalArgumentException("Board not singleplayer");
+		Board.ViewableBoard viewableBoard = board.getViewable().get(0);
+		Location playerLocation = viewableBoard.getBoardLocation().clone();
 		playerLocation.setY(playerLocation.getBlockY() + 5);
-		switch(board.face) {
+		switch(viewableBoard.getFace()) {
 			case NORTH -> playerLocation.setYaw(180);
 			case EAST -> playerLocation.setYaw(270);
 			case SOUTH -> playerLocation.setYaw(0);
@@ -182,7 +186,7 @@ public class SingleplayerGame implements GameInstance {
 	 * Ensures <code>{@link #getGameType()}.{@link Game.Type#matches(Board.Type) matches}(getBoard().type) == true</code>
 	 */
 	@Override
-	public Board getBoard() {
+	public Board.TypedBoard getBoard() {
 		return this.board;
 	}
 	

@@ -14,12 +14,12 @@ import java.util.UUID;
 
 public class Game {
     // Capacity of 6 and load factor of 1.0 to fix size to 5. Does not expect size to be 6 or more.
-    public static final Map<UUID, Board> singleBoards = new LimitedMap<>(6);
-    public static final Map<UUID, Board> multiBoards = new LimitedMap<>(6);
+    public static final Map<UUID, Board.TypedBoard> singleBoards = new LimitedMap<>(6);
+    public static final Map<UUID, Board.TypedBoard> multiBoards = new LimitedMap<>(6);
     private static final Map<UUID, GameInstance> activeGames = new LimitedMap<>(6);
 
     public static void startGame(String chartName, Player player) {
-        Board board;
+        Board.TypedBoard board;
         if((board = singleBoards.get(player.getUniqueId())) == null) throw new BeatblocksException("No singleplayer board for " + player.getName());
         if(activeGames.containsKey(player.getUniqueId())) throw new BeatblocksException("There is already a game instance for " + player.getName());
         if(Charts.CHARTS.get(chartName) == null) throw new BeatblocksException("No such chart!");
@@ -32,7 +32,7 @@ public class Game {
      */
     public static void startGame(String chartName, Player... players) {
         MultiplayerGame.checkCreatable(players);
-        Board board;
+        Board.TypedBoard board;
         if((board = multiBoards.get(players[0].getUniqueId())) == null) throw new BeatblocksException("No singleplayer board for " + players[0].getName());
         for(Player player : players)
             if(activeGames.containsKey(player.getUniqueId())) throw new BeatblocksException("Player " + player.getName() + " already has an active game");
@@ -58,16 +58,11 @@ public class Game {
         }
     }
 
-    public static Board registerBoard(Player player, Board.Type type) {
-        Board created;
-        if(type == Board.Type.SINGLEPLAYER) {
-            created = Board.createSinglePlayer(player.getLocation(), player.getFacing());
-            return singleBoards.put(player.getUniqueId(), created);
-        }
-        else {  // type == Board.Type.MULTIPLAYER
-            created = Board.createMultiPlayer(player.getLocation());
+    public static Board.TypedBoard registerBoard(Player player, String type) {
+        Board.TypedBoard created = Board.create(type, player.getLocation(), player.getFacing());
+        if(created.getType() == Board.Type.SINGLEPLAYER) return singleBoards.put(player.getUniqueId(), created);
+        else    // type == Board.Type.MULTIPLAYER
             return multiBoards.put(player.getUniqueId(), created);
-        }
     }
     
     public enum Type {

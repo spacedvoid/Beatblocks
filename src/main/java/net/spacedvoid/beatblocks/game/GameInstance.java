@@ -16,7 +16,7 @@ public interface GameInstance {
 	int getCurrentTiming();
 	List<Player> getPlayers();
 	Judgement.JudgementCounter getCounter();
-	Board getBoard();
+	Board.TypedBoard getBoard();
 	
 	/**
 	 * @return true if the instance contained the note entity; false otherwise
