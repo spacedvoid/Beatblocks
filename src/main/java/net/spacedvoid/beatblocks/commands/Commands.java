@@ -42,7 +42,7 @@ public class Commands {
 		})).register();
 		new CommandTree("beatblocks")
 			.then(literal("singleplayer").withRequirement(CommandFlag.SINGLEPLAYER::isEnabled)
-				.then(new StringArgument("chart").replaceSuggestions(ArgumentSuggestions.strings(Charts.CHARTS.keySet().toArray(new String[0])))
+				.then(new StringArgument("chart").replaceSuggestions(ArgumentSuggestions.strings(info -> Charts.CHARTS.keySet().toArray(new String[0])))
 					.executesPlayer(playerExecutor((player, args) -> Game.startGame((String)args[0], player)))
 					.then(new PlayerArgument("player")
 						.executes(executor((sender, args) -> {
@@ -54,8 +54,8 @@ public class Commands {
 				)
 			)
 			.then(literal("multiplayer")
-				.then(new StringArgument("chart")
-					.then(new ListArgumentBuilder<Player>("players").withList((Collection<Player>)Bukkit.getOnlinePlayers()).withMapper(Player::getName).buildGreedy()
+				.then(new StringArgument("chart").replaceSuggestions(ArgumentSuggestions.strings(info -> Charts.CHARTS.keySet().toArray(new String[0])))
+					.then(new ListArgumentBuilder<Player>("players").withList(() -> (Collection<Player>)Bukkit.getOnlinePlayers()).withMapper(Player::getName).buildGreedy()
 						.executesPlayer(playerExecutor((player, args) -> {
 							String chartName = (String)args[0];
 							List<Player> players = (List<Player>)args[1];

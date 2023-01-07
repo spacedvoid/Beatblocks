@@ -26,14 +26,13 @@ public class Game {
         activeGames.add(instance);
     }
 
-    // TODO: Make this not require players[0] to be the host
     /**
      * @param players Requires <code>[0]</code> to be the host(board owner), and <code>length > 1</code>
      */
     public static void startGame(String chartName, Player... players) {
         MultiplayerGame.checkCreatable(players);
         MultiplayerBoard board;
-        if((board = multiBoards.get(players[0].getUniqueId())) == null) throw new BeatblocksException("No singleplayer board for " + players[0].getName());
+        if((board = multiBoards.get(players[0].getUniqueId())) == null) throw new BeatblocksException("No multiplayer board for " + players[0].getName());
         for(Player player : players)
             if(get(player) != null) throw new BeatblocksException("Player " + player.getName() + " already has an active game");
         if(Charts.CHARTS.get(chartName) == null) throw new BeatblocksException("No such chart!");

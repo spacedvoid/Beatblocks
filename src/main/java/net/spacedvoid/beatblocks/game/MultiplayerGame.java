@@ -163,6 +163,7 @@ public class MultiplayerGame implements GameInstance {
 	 * @throws BeatblocksException If multiplayer game is not creatable
 	 */
 	public static void checkCreatable(@Nullable Player... players) {
-		if(players == null || players.length <= 1 || players.length > 4) throw new BeatblocksException("Not enough players! (" + (players == null? 0 : players.length) + ")");
+		if(players == null || players.length <= 1) throw new BeatblocksException("Not enough players! (" + (players == null? 0 : players.length) + ")");
+		else if(players.length > 4) throw new BeatblocksException("Too much players! (" + players.length + ")");
 	}
 }
