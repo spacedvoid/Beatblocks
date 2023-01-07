@@ -12,9 +12,4 @@ public class BeatblocksException extends RuntimeException {
 	public BeatblocksException(String message, boolean writableStackTrace) {
 		super(message, null, true, writableStackTrace);
 	}
-
-	@Override
-	public String getLocalizedMessage() {
-		return getClass().getName() + ": " + getMessage();
-	}
 }

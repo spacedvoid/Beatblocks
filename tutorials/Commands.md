@@ -17,6 +17,9 @@
 `/buildresource`**:** 게임에 사용될 리소스팩을 빌드 및 호스팅, 서버 콘솔에서만 실행 가능<br>
 &nbsp;&nbsp;&nbsp;&nbsp;`... [includeUnloaded: boolean]`**:** 모든 차트 파일을 불러온 후 빌드(기본값 `true`)
 
+`convert <String: path>`<br>
+&nbsp;&nbsp;&nbsp;&nbsp; `path`**:** 변환할 BRC 파일의 경로. 파일 선택 후 Ctrl+Shift+C로 복사한 파일 경로를 그대로 넣는것도 가능
+
 ### 싱글플레이 전용
 `/beatblocks`<br>
 &nbsp;&nbsp;&nbsp;&nbsp;`... singleplayer`<br>

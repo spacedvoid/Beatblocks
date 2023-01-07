@@ -4,7 +4,7 @@ import net.spacedvoid.beatblocks.chart.Chart;
 
 import java.nio.file.Path;
 
-public class YamlParser implements IParser {
+public class YamlParser implements Parser {
 	public static final double PARSER_VERSION = 1.0;
 	public static final String PARSER_FORMAT = "YAML-1.0";
 

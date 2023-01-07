@@ -8,6 +8,7 @@ import net.spacedvoid.beatblocks.Beatblocks;
 import net.spacedvoid.beatblocks.chart.Chart;
 import net.spacedvoid.beatblocks.charts.ChartDisplayer;
 import net.spacedvoid.beatblocks.charts.Charts;
+import net.spacedvoid.beatblocks.converter.YamlConverter;
 import net.spacedvoid.beatblocks.exceptions.CommandFailedException;
 import net.spacedvoid.beatblocks.exceptions.UncheckedThrowable;
 import net.spacedvoid.beatblocks.game.Game;
@@ -21,6 +22,7 @@ import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -170,6 +172,31 @@ public class Commands {
 				.executes(executor((sender, args) -> {
 					sender.sendMessage("Building the resource pack...");
 					ResourceBuilder.buildAsync(sender, (boolean)args[0]);
+				}))
+			).register();
+		new CommandTree("convert")
+			.then(new GreedyStringArgument("path")
+				.executes(executor((sender, args) -> {
+					String arg = (String)args[0];
+					if(arg.startsWith("\"") && arg.endsWith("\"")) arg = arg.substring(1, arg.length() - 1);
+					Path path = Path.of(arg);
+					CompletableFuture<Chart> future = new YamlConverter().convertAsync(path, sender);
+					new BukkitRunnable() {
+						@Override
+						public void run() {
+							if(future.isDone()) {
+								try {
+									future.get();
+								} catch (InterruptedException e) {
+									throw new RuntimeException(e);
+								} catch (ExecutionException e) {
+									sender.sendMessage(ExceptionUtil.getFullMessage(e.getCause()));
+								} finally {
+									this.cancel();
+								}
+							}
+						}
+					}.runTaskTimer(Beatblocks.getPlugin(), 0, 1);
 				}))
 			).register();
 		new CommandTree("parserversion").withRequirement(CommandFlag.DEBUG::isEnabled)

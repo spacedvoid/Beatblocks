@@ -2,8 +2,8 @@ package net.spacedvoid.beatblocks.parser;
 
 import net.spacedvoid.beatblocks.chart.Chart;
 import net.spacedvoid.beatblocks.charts.Charts;
+import net.spacedvoid.beatblocks.exceptions.BeatblocksException;
 import net.spacedvoid.beatblocks.exceptions.ChartFileException;
-import net.spacedvoid.beatblocks.exceptions.UncheckedThrowable;
 import org.bukkit.Bukkit;
 
 import java.io.File;
@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Comparator;
@@ -32,7 +33,7 @@ chart=
 #,#,#   //tick,lane,hasDoubleAccuracy
 */
 
-public class DefaultParser implements IParser {
+public class DefaultParser implements Parser {
     public static final String PARSER_FORMAT = "Default-1.0";
 
     public CompletableFuture<Chart> readChartAsync(Path chartFile) {
@@ -40,6 +41,7 @@ public class DefaultParser implements IParser {
     }
 
     public Chart readChart(Path chartPath) throws ChartFileException {
+        if(!Files.isDirectory(chartPath)) throw new BeatblocksException(chartPath + " is not a directory");
         File chartFile = chartPath.toFile();
         if(!chartFile.exists()) throw new ChartFileException("The chart file could not be found, or is not listed");
         Chart chart = new Chart(chartPath.getFileName().toString());
@@ -104,7 +106,7 @@ public class DefaultParser implements IParser {
                 line++;
             }
         } catch (IOException e) {
-            throw new UncheckedThrowable(e);
+            throw new BeatblocksException("Exception while parsing chart", e);
         }
         chart.notes.sort(Comparator.comparingInt(note -> note.info.timing));
         if(chart.validate() != null) {

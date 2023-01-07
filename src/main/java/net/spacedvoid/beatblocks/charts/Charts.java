@@ -80,7 +80,8 @@ public class Charts {
 		CHARTS.clear();
 	}
 
-	public static final String BIC_EXTENSION = ".bic";
+	public static final String BIC_EXTENSION = ".bic";  // Beatblocks Intermediate Chart
+	public static final String BRC_EXTENSION = ".brc";  // Beatblocks Raw Chart
 
 	/**
 	 * Silently ignores unexpected files.

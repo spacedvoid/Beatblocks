@@ -2,6 +2,7 @@ package net.spacedvoid.beatblocks.chart;
 
 import net.spacedvoid.beatblocks.exceptions.ChartFileException;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,12 +31,12 @@ import java.util.stream.Stream;
  */
 
 public class Chart {
-    public final String chartName;
     public Chart(String chartName) {
         this.chartName = chartName;
     }
+
     public static final Map<String, ChartValue<?>> chartValues = new HashMap<>();
-    public static final Map<ChartKey<?>, String> keyIDs = new HashMap<>();
+    private static final List<ChartKey<?>> chartKeys = new ArrayList<>();
 
     public static final ChartKey<StringValue> format = register("format", new StringValue());
     public static final ChartKey<StringValue> soundFile = register("sound-file", new StringValue());
@@ -48,38 +49,25 @@ public class Chart {
     public static final ChartKey<IntegerValue> offset = register("offset", new IntegerValue());
     public static final ChartKey<IntegerValue> keys = register("keys", new IntegerValue());
 
+    public final String chartName;
     public final List<ChartNote> notes  = new ArrayList<>();
-
     public final Map<String, ChartValue<?>> values = newValues();
 
     private static <T extends ChartValue<?>> ChartKey<T> register(String id, ChartValue<T> value) {
         ChartKey<T> key = new ChartKey<>(id);
         chartValues.put(id, value);
-        keyIDs.put(key, id);
+        chartKeys.add(key);
         return key;
     }
 
     public static ChartKey<?> getKey(String id) {
-        Stream<?> stream = keyIDs.entrySet().stream().filter(entry -> id.equals(entry.getValue())).map(Map.Entry::getKey);
-        return (ChartKey<?>)stream.findFirst().orElse(null);
+        Stream<ChartKey<?>> stream = chartKeys.stream().filter(entry -> entry.id.equals(id));
+        return stream.findFirst().orElse(null);
     }
 
     private static Map<String, ChartValue<?>> newValues() {
-        Map<String, ChartValue<?>> copy = new HashMap<>();
-        chartValues.forEach((string, value) -> {
-            if(value instanceof DoubleValue) {
-                copy.put(string, new DoubleValue());
-            }
-            else if(value instanceof StringValue) {
-                copy.put(string, new StringValue());
-            }
-            else if(value instanceof TimeValue) {
-                copy.put(string, new TimeValue());
-            }
-            else if(value instanceof IntegerValue) {
-                copy.put(string, new IntegerValue());
-            }
-        });
+        Map<String, ChartValue<?>> copy = new HashMap<>(11);
+        chartValues.forEach((string, value) -> copy.put(string, value.copy()));
         return copy;
     }
 
@@ -107,38 +95,38 @@ public class Chart {
     }
 
     public ChartValue<?> getValue(ChartKey<?> key) {
-        return this.values.get(keyIDs.get(key));
+        return this.values.get(key.id);
     }
 
     public Integer getInteger(ChartKey<IntegerValue> key) {
-        return ((IntegerValue)getValue(key)).getValue();
+        return (Integer)getValue(key).getValue();
     }
 
     public Double getDouble(ChartKey<DoubleValue> key) {
-        return ((DoubleValue)getValue(key)).getValue();
+        return (Double)getValue(key).getValue();
     }
 
     public String getString(ChartKey<StringValue> key) {
-        return ((StringValue)getValue(key)).getValue();
+        return (String)getValue(key).getValue();
     }
 
     public Time getTime(ChartKey<TimeValue> key) {
-        return ((TimeValue)getValue(key)).getValue();
+        return (Time)getValue(key).getValue();
     }
 
-    /*public IntegerValue getIntegerValue(ChartKey<IntegerValue> key) {
+    public IntegerValue getIntegerValue(ChartKey<IntegerValue> key) {
         return (IntegerValue)getValue(key);
-    }*/
+    }
 
-    /*public DoubleValue getDoubleValue(ChartKey<DoubleValue> key) {
+    public DoubleValue getDoubleValue(ChartKey<DoubleValue> key) {
         return (DoubleValue)getValue(key);
-    }*/
+    }
 
     public StringValue getStringValue(ChartKey<StringValue> key) {
         return (StringValue)getValue(key);
     }
 
-    /*public TimeValue getTimeValue(ChartKey<TimeValue> key) {
+/*    public TimeValue getTimeValue(ChartKey<TimeValue> key) {
         return (TimeValue)getValue(key);
     }*/
 
@@ -154,9 +142,11 @@ public class Chart {
     public static abstract class ChartValue<T extends ChartValue<?>> {
         @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         public abstract boolean serialize(@NotNull String s);
+        public abstract ChartValue<T> copy();
+        public abstract Object getValue();
     }
 
-    private static class IntegerValue extends ChartValue<IntegerValue> {
+    public static class IntegerValue extends ChartValue<IntegerValue> {
         private Integer value = null;
 
         @Override
@@ -168,12 +158,24 @@ public class Chart {
             return false;
         }
 
-        Integer getValue() {
+        @Override
+        public ChartValue<IntegerValue> copy() {
+            return new IntegerValue();
+        }
+
+        @Override
+        public Integer getValue() {
             return value;
+        }
+
+        public boolean setValue(@Nullable Integer newVal) {
+            if(newVal == null) return false;
+            this.value = newVal;
+            return true;
         }
     }
 
-    private static class DoubleValue extends ChartValue<DoubleValue> {
+    public static class DoubleValue extends ChartValue<DoubleValue> {
         private Double value = null;
 
         @Override
@@ -185,10 +187,21 @@ public class Chart {
             return false;
         }
 
-        Double getValue() {
+        @Override
+        public ChartValue<DoubleValue> copy() {
+            return new DoubleValue();
+        }
+
+        @Override
+        public Double getValue() {
             return value;
         }
 
+        public boolean setValue(Double newVal) {
+            if(newVal == null) return false;
+            this.value = newVal;
+            return true;
+        }
     }
 
     private static class StringValue extends ChartValue<StringValue> {
@@ -200,7 +213,13 @@ public class Chart {
             return true;
         }
 
-        String getValue() {
+        @Override
+        public ChartValue<StringValue> copy() {
+            return new StringValue();
+        }
+
+        @Override
+        public String getValue() {
             return value;
         }
 
@@ -228,10 +247,15 @@ public class Chart {
             return false;
         }
 
-        Time getValue() {
-            return value;
+        @Override
+        public ChartValue<TimeValue> copy() {
+            return new TimeValue();
         }
 
+        @Override
+        public Time getValue() {
+            return value;
+        }
     }
 
     public static class ChartNote {
