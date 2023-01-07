@@ -4,22 +4,22 @@ import net.spacedvoid.beatblocks.charts.Charts;
 import net.spacedvoid.beatblocks.exceptions.BeatblocksException;
 import net.spacedvoid.beatblocks.parser.DefaultParser;
 import net.spacedvoid.beatblocks.structures.Board;
-import net.spacedvoid.beatblocks.util.LimitedMap;
+import net.spacedvoid.beatblocks.structures.MultiplayerBoard;
+import net.spacedvoid.beatblocks.structures.SingleplayerBoard;
 import org.bukkit.entity.Player;
 
-import javax.annotation.Nullable;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 public class Game {
-    // Capacity of 6 and load factor of 1.0 to fix size to 5. Does not expect size to be 6 or more.
-    public static final Map<UUID, Board.TypedBoard> singleBoards = new LimitedMap<>(6);
-    public static final Map<UUID, Board.TypedBoard> multiBoards = new LimitedMap<>(6);
-    private static final Map<UUID, GameInstance> activeGames = new LimitedMap<>(6);
+    public static final Map<UUID, SingleplayerBoard> singleBoards = new HashMap<>(1, 1);
+    public static final Map<UUID, MultiplayerBoard> multiBoards = new HashMap<>(1, 1);
+    private static final Map<UUID, GameInstance> activeGames = new HashMap<>(1, 1);
 
     public static void startGame(String chartName, Player player) {
-        Board.TypedBoard board;
+        SingleplayerBoard board;
         if((board = singleBoards.get(player.getUniqueId())) == null) throw new BeatblocksException("No singleplayer board for " + player.getName());
         if(activeGames.containsKey(player.getUniqueId())) throw new BeatblocksException("There is already a game instance for " + player.getName());
         if(Charts.CHARTS.get(chartName) == null) throw new BeatblocksException("No such chart!");
@@ -32,7 +32,7 @@ public class Game {
      */
     public static void startGame(String chartName, Player... players) {
         MultiplayerGame.checkCreatable(players);
-        Board.TypedBoard board;
+        MultiplayerBoard board;
         if((board = multiBoards.get(players[0].getUniqueId())) == null) throw new BeatblocksException("No singleplayer board for " + players[0].getName());
         for(Player player : players)
             if(activeGames.containsKey(player.getUniqueId())) throw new BeatblocksException("Player " + player.getName() + " already has an active game");
@@ -44,7 +44,6 @@ public class Game {
     /**
      * @return <code>null</code> if the player has no associated game instances
      */
-    @Nullable
     public static GameInstance get(Player player) {
         Optional<GameInstance> optional = activeGames.values().stream().filter(instance -> instance.getPlayers().contains(player)).findFirst();
         return optional.orElse(null);
@@ -58,11 +57,11 @@ public class Game {
         }
     }
 
-    public static Board.TypedBoard registerBoard(Player player, String type) {
-        Board.TypedBoard created = Board.create(type, player.getLocation(), player.getFacing());
-        if(created.getType() == Board.Type.SINGLEPLAYER) return singleBoards.put(player.getUniqueId(), created);
+    public static Board registerBoard(Player player, String type) {
+        Board created = Board.create(type, player);
+        if(created.getType() == Board.Type.SINGLEPLAYER) return singleBoards.put(player.getUniqueId(), (SingleplayerBoard)created);
         else    // type == Board.Type.MULTIPLAYER
-            return multiBoards.put(player.getUniqueId(), created);
+            return multiBoards.put(player.getUniqueId(), (MultiplayerBoard)created);
     }
     
     public enum Type {

@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 public class ExceptionUtil {
+	// TODO: Use setStacktrace() to filter stacktraces with paths instead of filtering all stack traces
 	public static String getFullMessage(Throwable thrown, boolean override) {
 		if(override) {
 			return getExceptionInfo(thrown).append(walk(thrown)).toString();

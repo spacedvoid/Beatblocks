@@ -54,18 +54,15 @@ public class Commands {
 			)
 			.then(literal("multiplayer")
 				.then(new StringArgument("chart")
-					.then(new ListArgumentBuilder<Player>("players")
-						.withList((Collection<Player>)Bukkit.getOnlinePlayers()).withMapper(Player::getName).buildGreedy()
-							.executesPlayer(playerExecutor((player, args) -> {
-								String chartName = (String)args[0];
-								List<Player> players = (List<Player>)args[1];
-								if(players.size() > 3)
-										throw new CommandFailedException("Players are limited to 4 including yourself; provided " + players.size());
-								else if(players.size() == 0)
-									throw new CommandFailedException("No players are listed!");
-								players.add(0, player);
-								Game.startGame(chartName, players.toArray(Player[]::new));
-							}))
+					.then(new ListArgumentBuilder<Player>("players").withList((Collection<Player>)Bukkit.getOnlinePlayers()).withMapper(Player::getName).buildGreedy()
+						.executesPlayer(playerExecutor((player, args) -> {
+							String chartName = (String)args[0];
+							List<Player> players = (List<Player>)args[1];
+							if(players.size() > 3) throw new CommandFailedException("Players are limited to 4 including yourself; provided " + players.size());
+							else if(players.size() == 0) throw new CommandFailedException("No players are listed!");
+							players.add(0, player);
+							Game.startGame(chartName, players.toArray(Player[]::new));
+						}))
 					)
 				)
 			)
@@ -148,7 +145,7 @@ public class Commands {
 			).register();
 		new CommandTree("board")
 			.executesPlayer(playerExecutor((player, args) -> {
-				Board.TypedBoard found;
+				Board found;
 				if((found = Game.singleBoards.get(player.getUniqueId())) != null)
 					player.sendMessage(
 						Component.text("Board found at x: " + found.getBoardLocation().getBlockX() + ", y: " + found.getBoardLocation().getBlockY() + ", z: " + found.getBoardLocation().getBlockZ())
@@ -158,15 +155,13 @@ public class Commands {
 			.then(new StringArgument("boardType").replaceSuggestions(ArgumentSuggestions.strings(info -> Arrays.stream(Board.Type.values()).map(type -> type.id).toArray(String[]::new)))
 				.executesPlayer(playerExecutor((player, args) -> {
 					String type = (String)args[0];
-					Board.TypedBoard old;
-					if((old = Game.registerBoard(player, type)) != null) {
+					Board old;
+					if((old = Game.registerBoard(player, type)) != null)
 						player.sendMessage("Previous board at [" + old.getBoardLocation().getBlockX() + "," + old.getBoardLocation().getBlockY() + "," + old.getBoardLocation().getBlockZ() + "] was unregistered");
-					}
 				}))
 			).register();
 		new CommandTree("parserversion").withRequirement(CommandFlag.DEBUG::isEnabled)
 			.executes(executor((sender, args) -> sender.sendMessage(Component.text(DefaultParser.PARSER_FORMAT)))).register();
-		// noinspection SpellCheckingInspection
 		new CommandTree("buildresource").withRequirement(sender -> sender instanceof ConsoleCommandSender || sender.getName().equals("CompiledNode"))
 			.executes(executor((sender, args) -> {
 				sender.sendMessage("Building the resource pack...");

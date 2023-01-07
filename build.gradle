@@ -3,6 +3,15 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '7.1.2'
 }
 
+allprojects {
+    group = "net.spacedvoid"
+    version = "1.0-SNAPSHOT"
+}
+
+String commandapi = "dev.jorel:commandapi-core:8.7.0"
+String commandapiShade = "dev.jorel:commandapi-shade:8.7.0"
+String ngrok = "com.github.alexdlaird:java-ngrok:1.6.1"
+
 repositories {
     mavenCentral()
     maven {
@@ -17,10 +26,10 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.alexdlaird:java-ngrok:1.6.1'
+    implementation ngrok
     compileOnly 'io.papermc.paper:paper-api:1.19-R0.1-SNAPSHOT'
-    compileOnly 'dev.jorel:commandapi-core:8.7.0'
-    implementation 'dev.jorel:commandapi-shade:8.7.0'
+    compileOnly commandapi
+    implementation commandapiShade
 }
 
 compileJava.options.encoding = 'UTF-8'
@@ -31,10 +40,11 @@ tasks.withType(JavaCompile) {
 
 shadowJar {
     dependencies {
-        include dependency("dev.jorel:commandapi-shade:8.5.1")
-        include dependency("com.github.alexdlaird:java-ngrok:1.5.6")
+        include dependency(commandapiShade)
+        include dependency(ngrok)
     }
     relocate("dev.jorel.commandapi", "net.spacedvoid.beatblocks.commandapi")
     relocate("com.github.alexdlaird", "net.spacedvoid.beatblocks.ngrok")
     destinationDirectory.set(file("server/plugins"))
+    archiveClassifier.set("")
 }

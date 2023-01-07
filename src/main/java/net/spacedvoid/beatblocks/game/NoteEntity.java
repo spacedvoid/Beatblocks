@@ -2,7 +2,7 @@ package net.spacedvoid.beatblocks.game;
 
 import net.spacedvoid.beatblocks.Beatblocks;
 import net.spacedvoid.beatblocks.chart.NoteInfo;
-import net.spacedvoid.beatblocks.structures.Board;
+import net.spacedvoid.beatblocks.structures.BoardComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -27,7 +27,7 @@ public class NoteEntity {
 	
 	public static List<NoteEntity> create(GameInstance game, NoteInfo info) {
 		ArrayList<NoteEntity> list = new ArrayList<>(4);
-		game.getBoard().getViewable().stream().map(Board.ViewableBoard::getNoteBase).forEach(anchor -> list.add(new NoteEntity(game, anchor.location(), anchor.direction(), info)));
+		game.getBoard().toComponents().stream().map(BoardComponent::getNoteBase).forEach(base -> list.add(new NoteEntity(game, base.location(), base.direction(), info)));
 		return list;
 	}
 	
