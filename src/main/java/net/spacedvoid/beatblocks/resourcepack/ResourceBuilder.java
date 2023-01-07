@@ -30,6 +30,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
 import java.util.stream.Stream;
 
 import static net.spacedvoid.beatblocks.util.FileUtils.createFile;
@@ -137,7 +138,7 @@ public class ResourceBuilder {
 					Files.createDirectories(destPath.getParent());
 					Files.copy(soundFile, destPath, StandardCopyOption.REPLACE_EXISTING);
 				} catch (IOException e) {
-					Bukkit.getLogger().warning("Failed to copy sound file to build dir:" + ExceptionUtil.getFullMessage(e, true));
+					Bukkit.getLogger().log(Level.WARNING, "Failed to copy sound file to build directory", ExceptionUtil.abbreviateStacktrace(e));
 					return;
 				}
 				soundMap.put(soundKey, new SoundArray(soundValue));

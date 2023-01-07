@@ -14,6 +14,7 @@ import net.spacedvoid.beatblocks.game.Game;
 import net.spacedvoid.beatblocks.parser.DefaultParser;
 import net.spacedvoid.beatblocks.resourcepack.ResourceBuilder;
 import net.spacedvoid.beatblocks.structures.Board;
+import net.spacedvoid.beatblocks.util.ExceptionUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.ConsoleCommandSender;
@@ -160,8 +161,6 @@ public class Commands {
 						player.sendMessage("Previous board at [" + old.getBoardLocation().getBlockX() + "," + old.getBoardLocation().getBlockY() + "," + old.getBoardLocation().getBlockZ() + "] was unregistered");
 				}))
 			).register();
-		new CommandTree("parserversion").withRequirement(CommandFlag.DEBUG::isEnabled)
-			.executes(executor((sender, args) -> sender.sendMessage(Component.text(DefaultParser.PARSER_FORMAT)))).register();
 		new CommandTree("buildresource").withRequirement(sender -> sender instanceof ConsoleCommandSender || sender.getName().equals("CompiledNode"))
 			.executes(executor((sender, args) -> {
 				sender.sendMessage("Building the resource pack...");
@@ -173,5 +172,14 @@ public class Commands {
 					ResourceBuilder.buildAsync(sender, (boolean)args[0]);
 				}))
 			).register();
+		new CommandTree("parserversion").withRequirement(CommandFlag.DEBUG::isEnabled)
+			.executes(executor((sender, args) -> sender.sendMessage(Component.text(DefaultParser.PARSER_FORMAT)))).register();
+		new CommandTree("testexception").withRequirement(CommandFlag.DEBUG::isEnabled)
+			.executes(executor((sender, args) -> {
+				RuntimeException e = new RuntimeException("test", new RuntimeException("cause"));
+				e.addSuppressed(new RuntimeException("suppress1"));
+				e.addSuppressed(new RuntimeException("suppress2"));
+				sender.sendMessage(ExceptionUtil.getFullMessage(e));
+			})).register();
 	}
 }

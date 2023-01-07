@@ -120,5 +120,5 @@ run/
 # Server folder
 server
 
-# Server resource pack
-resource-pack
+# Plans
+plan.txt
