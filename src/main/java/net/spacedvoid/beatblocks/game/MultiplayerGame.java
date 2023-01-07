@@ -107,7 +107,7 @@ public class MultiplayerGame implements GameInstance {
 	private void spawnNotes() {
 		// TODO
 	}
-	
+
 	@Override
 	public Game.Type getGameType() {
 		return Game.Type.MULTIPLAYER;
@@ -147,7 +147,13 @@ public class MultiplayerGame implements GameInstance {
 	public MultiplayerBoard getBoard() {
 		return board;
 	}
-	
+
+	@Override
+	public EndStatus getEndStatus() {
+		// TODO
+		return null;
+	}
+
 	@Override
 	public boolean removeNote(NoteEntity noteEntity) {
 		return notes.remove(noteEntity);

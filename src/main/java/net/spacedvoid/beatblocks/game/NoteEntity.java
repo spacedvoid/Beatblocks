@@ -17,13 +17,14 @@ public class NoteEntity {
 	private static final double LENGTH = 12;                        // blocks => 12
 	public static final double TIME = 15;                          // ticks => 15
 	
-	private static final double SPEED = LENGTH / TIME;              // block / tick -> 12 blocks for 15 ticks => 0.8
-	private static final int TIME_LIMIT = (int)(13 / SPEED) + 1;    // 17
+	private static final double SPEED = (LENGTH / TIME) * 1.08;              // block / tick -> 12 blocks for 15 ticks + error => 0.8
+	private static final int TIME_LIMIT = (int)(13 / SPEED) + 2;    // 17
 	
 	private final Entity noteEntity;
 	public final NoteInfo info;
 	
 	private int age = 0;
+	private boolean isDeleted = false;
 	
 	public static List<NoteEntity> create(GameInstance game, NoteInfo info) {
 		ArrayList<NoteEntity> list = new ArrayList<>(4);
@@ -45,6 +46,10 @@ public class NoteEntity {
 		new BukkitRunnable() {
 			@Override
 			public void run() {
+				if(isDeleted) {
+					this.cancel();
+					return;
+				}
 				noteEntity.setVelocity(direction.getDirection().multiply(SPEED));
 				if(age >= TIME_LIMIT) {
 					this.cancel();
@@ -61,10 +66,11 @@ public class NoteEntity {
 	}
 	
 	void process() {
-		process(Judgement.get(instance.getCurrentTiming(), this.info.timing));
+		process(Judgement.get(instance.getCurrentTiming(), (int)(this.info.timing + TIME)));
 	}
 	
 	private void process(Judgement judgement) {
+		Bukkit.getLogger().info("Processed " + this + " at " + instance.getCurrentTiming() + ", " + (this.info.timing + TIME));
 		instance.getPlayers().forEach(player -> player.sendActionBar(judgement.text));
 		instance.getCounter().increase(judgement);
 		delete();
@@ -75,6 +81,7 @@ public class NoteEntity {
 			Bukkit.getLogger().warning("Failed to remove note entity from container: " + this);
 		}
 		noteEntity.remove();
+		this.isDeleted = true;
 	}
 	
 	private static Material getMaterial(int lane) {

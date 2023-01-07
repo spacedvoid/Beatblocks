@@ -30,7 +30,7 @@ public enum Judgement {
 	MISS(Component.text("MISS", NamedTextColor.GRAY), 5);
 
 	public final TextComponent text;
-	private final Judgement parent;
+	public final Judgement parent;
 	public final int ordinal;
 
 	Judgement(TextComponent text, int ordinal) {

@@ -24,19 +24,17 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 public class SingleplayerGame implements GameInstance {
-	private final Chart chart;
 	private final Player player;
 	private final SingleplayerBoard board;
 	private int noteIndex = 0;
 	/** Includes finishing process. */
-	private boolean ended = false;
+	private GameInstance.EndStatus endStatus = EndStatus.NONE;
 	private final List<NoteEntity> notes = Collections.synchronizedList(new ArrayList<>());
 	private final Judgement.JudgementCounter counter = Judgement.createCounter();
 	
 	private int currentTiming = 0;
 
-	private SingleplayerGame(Chart chart, Player player, SingleplayerBoard board) {
-		this.chart = chart;
+	private SingleplayerGame(Player player, SingleplayerBoard board) {
 		this.player = player;
 		this.board = board;
 	}
@@ -68,49 +66,36 @@ public class SingleplayerGame implements GameInstance {
 		} catch(InterruptedException e) {
 			throw new RuntimeException("Failed to load chart", e);
 		}
-		SingleplayerGame instance = new SingleplayerGame(chart, player, board);
-		Bukkit.getScheduler().runTaskLater(Beatblocks.getPlugin(), instance::spawnNotes, instance.getStartDelay());
-		Bukkit.getScheduler().runTaskLater(Beatblocks.getPlugin(),
-				() -> player.playSound(Sound.sound(Key.key("beatblocks:" + chart.chartName + "." + chart.getString(Chart.soundFile)), Sound.Source.RECORD, 1.0f, 1.0f), Sound.Emitter.self()),
-				chart.getInteger(Chart.offset) + instance.getStartDelay() + (long)NoteEntity.TIME
-		);
+		SingleplayerGame instance = new SingleplayerGame(player, board);
 		Bukkit.getScheduler().runTaskLater(Beatblocks.getPlugin(), () ->
-						new BukkitRunnable() {
-							@Override
-							public void run() {
-								if(instance.hasEnded()) {
-									this.cancel();
-									return;
-								}
-								instance.currentTiming++;
-							}
-						}.runTaskTimer(Beatblocks.getPlugin(), 1, 1),
-				chart.getInteger(Chart.offset) + instance.getStartDelay());
-		return instance;
-	}
-	
-	private void spawnNotes() {
+			player.playSound(Sound.sound(Key.key("beatblocks:" + chart.chartName + "." + chart.getString(Chart.soundFile)), Sound.Source.RECORD, 1.0f, 1.0f), Sound.Emitter.self()),
+			chart.getInteger(Chart.offset) + instance.getStartDelay()
+		);
 		new BukkitRunnable() {
 			@Override
 			public void run() {
-				if(ended) {
+				if(instance.endStatus == EndStatus.STOPPED) {
 					this.cancel();
 					return;
 				}
-				if(noteIndex >= chart.notes.size()) {
-					Game.stop(player, false);
-					this.cancel();
-					return;
+				if(instance.endStatus == EndStatus.NONE) {
+					if(instance.noteIndex >= chart.notes.size()) {
+						Game.stop(player, false);
+					}
+					else {
+						Chart.ChartNote chartNote = chart.notes.get(instance.noteIndex);
+						if(instance.currentTiming == chartNote.info.timing) {
+							instance.addNoteEntity(NoteEntity.create(instance, chartNote.info));
+							instance.noteIndex++;
+						}
+					}
 				}
-				Chart.ChartNote chartNote = chart.notes.get(noteIndex);
-				if(currentTiming == chartNote.info.timing) {
-					addNoteEntity(NoteEntity.create(SingleplayerGame.this, chartNote.info));
-					noteIndex++;
-				}
+				instance.currentTiming++;
 			}
-		}.runTaskTimer(Beatblocks.getPlugin(), 0, 1);
+		}.runTaskTimer(Beatblocks.getPlugin(), instance.getStartDelay(), 1);
+		return instance;
 	}
-	
+
 	@Override
 	public Game.Type getGameType() {
 		return Game.Type.SINGLEPLAYER;
@@ -128,8 +113,8 @@ public class SingleplayerGame implements GameInstance {
 
 	@Override
 	public void endGame(boolean force) {
-		ended = true;
-		NotePressedEvent.exclude(player);
+		if(this.hasEnded()) return;
+		endStatus = EndStatus.IN_PROGRESS;
 		if(force) {
 			synchronized (notes) {
 				while(notes.size() > 0) {
@@ -137,12 +122,16 @@ public class SingleplayerGame implements GameInstance {
 				}
 			}
 			player.stopSound(SoundCategory.RECORDS);
+			NotePressedEvent.exclude(player);
+			endStatus = EndStatus.STOPPED;
 		} else {
 			new BukkitRunnable() {
 				@Override
 				public void run() {
 					if(!notes.isEmpty()) return;
 					showResults();
+					NotePressedEvent.exclude(player);
+					endStatus = EndStatus.STOPPED;
 					this.cancel();
 				}
 			}.runTaskTimer(Beatblocks.getPlugin(), 0, 1);
@@ -154,6 +143,7 @@ public class SingleplayerGame implements GameInstance {
 		Judgement[] values = Judgement.values();
 		for(int i = 0; i < values.length; i++) {
 			Judgement judgement = values[i];
+			if(judgement.parent != null) builder.append(Component.text("  "));
 			builder.append(judgement.text);
 			builder.append(Component.text(" : "));
 			builder.append(Component.text(counter.get(judgement)));
@@ -164,7 +154,7 @@ public class SingleplayerGame implements GameInstance {
 
 	@Override
 	public boolean hasEnded() {
-		return ended;
+		return endStatus == EndStatus.STOPPED || endStatus == EndStatus.IN_PROGRESS;
 	}
 	
 	@Override
@@ -189,7 +179,12 @@ public class SingleplayerGame implements GameInstance {
 	public SingleplayerBoard getBoard() {
 		return this.board;
 	}
-	
+
+	@Override
+	public EndStatus getEndStatus() {
+		return endStatus;
+	}
+
 	@Override
 	public boolean removeNote(NoteEntity noteEntity) {
 		return notes.remove(noteEntity);

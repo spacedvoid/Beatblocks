@@ -22,6 +22,7 @@ public class RPAppliedEvent implements Listener {
 
 	@EventHandler
 	public void onRPApply(PlayerResourcePackStatusEvent event) {
+		if(!requestedPlayers.contains(event.getPlayer().getUniqueId())) return;
 		if(isDone(event.getStatus())) untrack(event.getPlayer(), event.getStatus());
 	}
 
@@ -44,9 +45,10 @@ public class RPAppliedEvent implements Listener {
 	@SuppressWarnings("SpellCheckingInspection")
 	public static void untrack(Player player, @Nullable PlayerResourcePackStatusEvent.Status status) {
 		requestedPlayers.remove(player.getUniqueId());
-		String message = "Untracking player " + player.getName();
-		if(status != null) message += " - Status: " + status;
-		logger.info(message);
+		StringBuilder builder = new StringBuilder();
+		builder.append("Untracking player ").append(player.getName());
+		if(status != null) builder.append(" - Status: ").append(status);
+		logger.info(builder.toString());
 		if(latch != null) latch.countDown();
 	}
 
