@@ -1,6 +1,6 @@
 main: net.spacedvoid.beatblocks.Beatblocks
 name: Beatblocks
-version: 1.0-SNAPSHOT
+version: 0.1.0-beta
 api-version: 1.19
 description: Plugin for Beatblocks.
 author: CompiledNode(Spacedvoid)

@@ -21,6 +21,8 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class YamlConverter {
+	private static final String FORMAT_VERSION = "RAW-1.0";
+
 	public CompletableFuture<Chart> convertAsync(Path chartPath, Audience sender) {
 		return CompletableFuture.supplyAsync(() -> convert(chartPath, sender));
 	}
@@ -53,6 +55,7 @@ public class YamlConverter {
 		String format = chart.getString(Chart.format);
 		if(format == null) throw new BeatblocksException("Invalid format: null");
 		else if(!format.matches("^RAW-\\d.\\d$")) throw new BeatblocksException("Invalid format: " + format, false);
+		else if(!format.equals(FORMAT_VERSION)) throw new BeatblocksException("Unsupported format version: " + format + " (required: " + FORMAT_VERSION + ")");
 		List<Note> notes = data.chart;
 		Iterator<Note> iterator = notes.iterator();
 		if(!iterator.hasNext()) throw new BeatblocksException("No chart information!", false);

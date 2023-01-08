@@ -1,4 +1,4 @@
-# Configuration file for Beatblocks 1.0-SNAPSHOT
+# Configuration file for Beatblocks 0.1.0-beta
 
 # Allow players to run debug commands.
 # Most debug commands do nothing useful, since they are for testing how inner methods work.
