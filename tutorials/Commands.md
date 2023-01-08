@@ -18,7 +18,8 @@
 &nbsp;&nbsp;&nbsp;&nbsp;`... [includeUnloaded: boolean]`**:** 모든 차트 파일을 불러온 후 빌드(기본값 `true`)
 
 `convert <String: path>`<br>
-&nbsp;&nbsp;&nbsp;&nbsp; `path`**:** 변환할 BRC 파일의 경로. 파일 선택 후 Ctrl+Shift+C로 복사한 파일 경로를 그대로 넣는것도 가능
+&nbsp;&nbsp;&nbsp;&nbsp; `path`**:** 변환할 BRC 파일의 경로. 파일 선택 후 Ctrl+Shift+C로 복사한 파일 경로를 그대로 넣는것도 가능<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;호스트의 파일을 사용하는 방식으로, 서버 호스트 외에는 사용이 불가능
 
 ### 싱글플레이 전용
 `/beatblocks`<br>
